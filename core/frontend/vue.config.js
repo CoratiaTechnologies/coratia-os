@@ -168,7 +168,7 @@ async function getBlueOSReachableAddress() {
 
   if (address) {
     // The new line is necessary to show the value while running yarn
-    console.log(`Found BlueOS on: ${address}\n`)
+    console.log(`Found CoratiaOS on: ${address}\n`)
   }
 
   return address

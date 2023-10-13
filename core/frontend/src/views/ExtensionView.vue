@@ -53,7 +53,7 @@ export default Vue.extend({
       + `?time=${this.cache_busting_time}`
     },
     service_name(): string {
-      return this.service?.metadata?.name ?? 'BlueOS Extension'
+      return this.service?.metadata?.name ?? 'CoratiaOS Extension'
     },
   },
   watch: {

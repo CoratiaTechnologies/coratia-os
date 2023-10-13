@@ -42,9 +42,9 @@
           <v-stepper-content step="0">
             <v-card class="ma-2 pa-5">
               <div class="welcome" style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                Welcome to BlueOS!
+                Welcome to CoratiaOS!
               </div>
-              Welcome to BlueOS!
+              Welcome to CoratiaOS!
               In this setup wizard we will guide you through the initial configuration of your vehicle.
               including setting up the vehicle name, hostname, and <b>firmware</b>.
               If your vehicle is already set up, you can skip this wizard.
