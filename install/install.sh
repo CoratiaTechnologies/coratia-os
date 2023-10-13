@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Set desired version to be installed
-VERSION="${VERSION:-master}"
-GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-bluerobotics/blueos-docker}
+VERSION="${VERSION:-coratiaos}"
+GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-sakthivelj/coratia-os}
 REMOTE="${REMOTE:-https://raw.githubusercontent.com/${GITHUB_REPOSITORY}}"
 ROOT="$REMOTE/$VERSION"
 alias curl="curl --retry 6 --max-time 15 --retry-all-errors"
