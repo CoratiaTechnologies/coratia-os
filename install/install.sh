@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
 # Set desired version to be installed
-VERSION="${VERSION:-v1}"
+VERSION="${VERSION:-coratia-os}"
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-sakthivelj/coratia-os}
 REMOTE="${REMOTE:-https://raw.githubusercontent.com/${GITHUB_REPOSITORY}}"
 ROOT="$REMOTE/$VERSION"
+echo $VERSION
 alias curl="curl --retry 6 --max-time 15 --retry-all-errors"
 
 # Additional options
@@ -89,11 +90,8 @@ else
     echo "Skipping hardware configuration"
 fi
 
-# There are systems where rfkill does not exist, like SBC without wifi/BT
-command -v rfkill && (
-    echo "Checking for blocked wifi and bluetooth."
-    rfkill unblock all
-)
+echo "Checking for blocked wifi and bluetooth."
+rfkill unblock all
 
 # Get the number of free blocks and the block size in bytes, and calculate the value in GB
 echo "Checking for available space."
@@ -200,29 +198,16 @@ docker create \
     --net=host \
     -v $HOME/.config/blueos/bootstrap:/root/.config/bootstrap \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v /var/logs/blueos:/var/logs/blueos \
     -e BLUEOS_CONFIG_PATH=$HOME/.config/blueos \
     $BLUEOS_BOOTSTRAP
 
 # add docker entry to rc.local
-sed -i "\%^exit 0%idocker start blueos-bootstrap" /etc/rc.local || echo "Failed to add docker start on rc.local, BlueOS will not start on boot!"
+sed -i "\%^exit 0%idocker start blueos-bootstrap" /etc/rc.local || echo "sed failed to add expand_fs entry in /etc/rc.local"
 
 # Configure network settings
 ## This should be after everything, otherwise network problems can happen
 echo "Starting network configuration."
 curl -fsSL $ROOT/install/network/avahi.sh | bash
-
-# Following https://systemd.io/BUILDING_IMAGES/
-echo "Restarting machine-id."
-rm -rf /etc/machine-id /var/lib/dbus/machine-id
-# The file needs to exist for docker to bind
-## if /etc/machine-id does not exist, this is a first boot. During early boot, systemd will write "uninitialized\n"
-## to this file and overmount a temporary file which contains the actual machine ID.
-## Later (after first-boot-complete.target has been reached), the real machine ID will be written to disk.
-## If /etc/machine-id contains the string "uninitialized", a boot is also considered the first boot. The same mechanism as above applies.
-echo "uninitialized" > /etc/machine-id
-echo "Restarting random-seeds."
-rm -rf /var/lib/systemd/random-seed /loader/random-seed
 
 echo "Installation finished successfully."
 echo "You can access after the reboot:"
