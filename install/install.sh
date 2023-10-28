@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Set desired version to be installed
-VERSION="${VERSION:-coratia-os}"
+VERSION="${VERSION:-coratiaos}"
 GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-sakthivelj/coratia-os}
 REMOTE="${REMOTE:-https://raw.githubusercontent.com/${GITHUB_REPOSITORY}}"
 ROOT="$REMOTE/$VERSION"
