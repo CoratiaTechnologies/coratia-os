@@ -36,11 +36,11 @@ const routes: Array<RouteConfig> = [
     name: 'Autopilot',
     component: Autopilot,
   },
-  {
-    path: '/vehicle/Setup',
-    name: 'Vehicle Setup',
-    component: VehicleSetupView,
-  },
+  // {
+  //   path: '/vehicle/Setup',
+  //   name: 'Vehicle Setup',
+  //   component: VehicleSetupView,
+  // },
   {
     path: '/vehicle/pings',
     name: 'Pings',

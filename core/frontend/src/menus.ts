@@ -110,13 +110,13 @@ const menus = [
     advanced: true,
     text: 'A web-based console. Used mainly for debugging and development.',
   },
-  {
-    title: 'Vehicle Setup',
-    icon: 'mdi-cog-outline',
-    route: '/vehicle/setup',
-    advanced: false,
-    text: 'Vehicle and Peripherals setup. Includes sensor calibrations and Motors/Peripherals mapping.',
-  },
+  // {
+  //   title: 'Vehicle Setup',
+  //   icon: 'mdi-cog-outline',
+  //   route: '/vehicle/setup',
+  //   advanced: false,
+  //   text: 'Vehicle and Peripherals setup. Includes sensor calibrations and Motors/Peripherals mapping.',
+  // },
   {
     title: 'Video Streams',
     icon: 'mdi-video-vintage',

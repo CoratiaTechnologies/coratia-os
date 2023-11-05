@@ -260,43 +260,7 @@
         <v-container class="d-flex justify-center">
           <power-menu />
           <settings-menu />
-          <report-menu />
         </v-container>
-        <span
-          class="build_info"
-        >
-          Coratia OS Version:
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            :href="git_info_url"
-          >
-            {{ git_info }}
-          </a>
-        </span>
-        <span
-          v-if="bootstrap_version"
-          class="build_info"
-        >
-          Bootstrap Version: {{ bootstrap_version.split(':')[1] }}
-        </span>
-        <span
-          id="current-version"
-          class="build_info"
-        >Build: {{ build_date }}</span>
-        <span
-          class="build_info"
-        >
-          By
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://bluerobotics.com"
-            style="text-decoration:none;"
-          >
-            Blue Robotics
-          </a>
-        </span>
       </v-container>
     </v-navigation-drawer>
 
