@@ -275,11 +275,11 @@
     <new-version-notificator />
     <Wizard />
     <alerter />
-    <v-tour
+    <!-- <v-tour
       name="welcomeTour"
       :steps="steps.filter((step) => step?.filter_wifi_connected !== wifi_connected)"
       :callbacks="tourCallbacks"
-    />
+    /> -->
   </v-app>
   <div v-else>
     <services-scanner />
