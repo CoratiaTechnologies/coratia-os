@@ -767,8 +767,8 @@ div.pirate-marker.v-icon {
     It's not possible for us to get the color as variables and set a transparency on it,
     so we use the colors directly
   */
-  background-color: #2699D055 !important;
-  background-image: linear-gradient(160deg, #2699D088 0%, #135DA388 100%) !important;
+  background-color: #FEDC5655 !important;
+  background-image: linear-gradient(160deg, #FEDC5688 0%, #E6C51588 100%) !important;
   backdrop-filter: blur(4.5px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
 }
