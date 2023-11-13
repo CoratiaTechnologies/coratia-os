@@ -681,7 +681,7 @@ html {
 }
 
 .active_menu {
-  color: blue;
+  color: yellow;
 }
 
 span.build_info {
