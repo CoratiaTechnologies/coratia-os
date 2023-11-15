@@ -33,7 +33,7 @@
         <v-app-bar-nav-icon
           id="hamburguer-menu-button"
           :style="{ visibility: drawer ? 'hidden' : 'visible' }"
-          color="white"
+          color="black"
           @click="drawer = true"
         />
         <draggable v-model="selected_widgets" class="d-flex align-center justify-center">
@@ -767,8 +767,8 @@ div.pirate-marker.v-icon {
     It's not possible for us to get the color as variables and set a transparency on it,
     so we use the colors directly
   */
-  background-color: #FEDC5655 !important;
-  background-image: linear-gradient(160deg, #FEDC5688 0%, #E6C51588 100%) !important;
+  background-color: #FFCA3A55 !important;
+  background-image: linear-gradient(160deg, #FFCA3A88 0%, #9F8F0088 100%) !important;
   backdrop-filter: blur(4.5px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
 }
@@ -778,8 +778,8 @@ div.pirate-marker.v-icon {
     It's not possible for us to get the color as variables and set a transparency on it,
     so we use the colors directly
   */
-  background-color: #135DA355 !important;
-  background-image: linear-gradient(160deg, #135DA388 0%, #012F4688 100%) !important;
+  background-color: #FFCA3A55 !important;
+  background-image: linear-gradient(160deg, #FFCA3A88 0%, #9F8F0088 100%) !important;
   backdrop-filter: blur(4.5px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
 }
