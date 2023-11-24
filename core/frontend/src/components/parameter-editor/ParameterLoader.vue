@@ -63,7 +63,7 @@
         <v-progress-linear
           v-if="user_selected_params_length > 0 && initial_size > 0"
           slot="progress"
-          :color="error ? 'red' : 'blue'"
+          :color="error ? 'red' : 'yellow'"
           height="20"
           :value="progress"
         >

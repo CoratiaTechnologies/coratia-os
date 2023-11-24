@@ -22,7 +22,7 @@
     >
       <v-progress-linear
         slot="progress"
-        color="blue"
+        color="yellow"
         height="20"
         :value="params_percentage"
       >

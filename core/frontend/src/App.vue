@@ -120,7 +120,7 @@
                     color="red"
                     pill
                     x-small
-                    text-color="white"
+                    text-color="black"
                   >
                     Beta
                   </v-chip>
