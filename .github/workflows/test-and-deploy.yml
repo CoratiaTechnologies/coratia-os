@@ -11,7 +11,7 @@ on:
     # Run every 6 days to keep our caches alive
     - cron: '0 0 */6 * *'
 
-# jobs:
+jobs:
 #   python-tests:
 #     runs-on: ubuntu-latest
 
