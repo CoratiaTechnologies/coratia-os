@@ -12,69 +12,80 @@ on:
     - cron: '0 0 */6 * *'
 
 jobs:
-#   python-tests:
-#     runs-on: ubuntu-latest
+  # python-tests:
+  #   runs-on: ubuntu-latest
 
-#     env:
-#       python-version: 3.9 # Our base image has Python 3.9
+  #   env:
+  #     python-version: 3.9 # Our base image has Python 3.9
 
-#     steps:
-#     - name: Checkout
-#       uses: actions/checkout@v3
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v3
 
-#     - name: Set up Python ${{ env.python-version }}
-#       uses: actions/setup-python@v4
-#       with:
-#         python-version: ${{ env.python-version }}
+  #   - name: Set up Python ${{ env.python-version }}
+  #     uses: actions/setup-python@v4
+  #     with:
+  #       python-version: ${{ env.python-version }}
 
-#     - name: Install dependencies
-#       run: |
-#         sudo apt install shellcheck
-#         python -m pip install --upgrade pip
-#         pip install pipenv
-#         pipenv install poetry && pipenv run poetry install
-#         echo "installing mavlink-router"
-#         pipenv run ./core/tools/mavlink_router/bootstrap.sh
-#         echo "installing mavp2p"
-#         pipenv run ./core/tools/mavp2p/bootstrap.sh
-#         echo "installing ardupilot_tools"
-#         pipenv run ./core/tools/ardupilot_tools/bootstrap.sh
-#         pipenv run python ./core/libs/bridges/setup.py install
-#         pipenv run python ./core/libs/commonwealth/setup.py install
-#         rm -rf core/libs/bridges/build
-#         rm -rf core/libs/commonwealth/build
+  #   - name: Install dependencies
+  #     run: |
+  #       sudo ./core/tools/mavlink_router/bootstrap.sh
+  #       ./core/tools/ardupilot_tools/bootstrap.sh
+  #       sudo apt install shellcheck
+  #       npm install \
+  #         eslint@7 eslint-plugin-vue eslint-plugin-html @vue/eslint-config-typescript @typescript-eslint/parser \
+  #         @typescript-eslint/eslint-plugin typescript @vue/eslint-config-airbnb@^5.3.0 @vue/cli-service \
+  #         eslint-plugin-simple-import-sort \
+  #         --save-dev
+  #       python -m pip install --upgrade pip
+  #       pip install wheel # wheel need to be installed before mavproxy
+  #       pip install mavproxy
+  #       pip install pyfakefs pytest-cov pytest-timeout pylint pylint-pydantic mypy isort black==22.1.0 asyncmock types-requests \
+  #         pytest-mock nmeasim geographiclib ruff
+  #       pip install git+https://github.com/patrickelectric/pykson.git@master_fixes
+  #       ## Install our own libraries
+  #       python ./core/libs/bridges/setup.py install
+  #       python ./core/libs/commonwealth/setup.py install
+  #       ## We need to install loguru and appdirs since they may be used inside setup.py
+  #       python -m pip install --user appdirs==1.4.4 loguru==0.5.3
+  #       find . -type f -name "setup.py" | xargs --max-lines=1 --replace=% python % install --user
+  #       ## Fix Click version since its being updated to an old version by our packages
+  #       pip install click==8.0.0
 
-#     - name: Run tests
-#       run: |
-#         .hooks/pre-push
+  #   - name: Run tests
+  #     run: |
+  #       ./.hooks/pre-push
 
-#     - name: Upload coverage
-#       uses: actions/upload-artifact@v3
-#       with:
-#         name: coverage
-#         path: htmlcov
+  #   - name: Upload coverage
+  #     uses: actions/upload-artifact@v3
+  #     with:
+  #       name: coverage
+  #       path: htmlcov
 
 
-#   frontend-tests:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v3
-#         with:
-#           submodules: recursive
+  # frontend-tests:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #       with:
+  #         submodules: recursive
 
-#       - uses: oven-sh/setup-bun@v1
-#         with:
-#           bun-version: 1.0.3
+  #     - name: Yarn install
+  #       uses: borales/actions-yarn@v4
+  #       with:
+  #         cmd: --cwd ./core/frontend install --frozen-lockfile --ignore-engines
 
-#       - name: Bun install
-#         run: bun install --cwd ./core/frontend
+  #     - name: Yarn lint
+  #       uses: borales/actions-yarn@v4
+  #       with:
+  #         cmd: --cwd ./core/frontend lint --no-fix --ignore-engines --max-warnings=0
 
-#       - name: Bun lint
-#         run: bun --cwd ./core/frontend lint
+  #     - name: Yarn build
+  #       uses: borales/actions-yarn@v4
+  #       with:
+  #         cmd: --cwd ./core/frontend build --ignore-engines
 
-#       - name: Bun build
-#         run: bun run --cwd ./core/frontend build
 
   deploy-docker-images:
     runs-on: ubuntu-latest
@@ -112,7 +123,7 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "buildx_args=\
             --build-arg GIT_DESCRIBE_TAGS=$(git describe --tags --long --always) \
-            --build-arg VITE_APP_GIT_DESCRIBE=$(git describe --long --always --dirty --all) \
+            --build-arg VUE_APP_GIT_DESCRIBE=$(git describe --long --always --dirty --all) \
             --cache-from 'type=local,src=/tmp/.buildx-cache' \
             --cache-to 'type=local,dest=/tmp/.buildx-cache' \
             ${TAGS} \
@@ -239,7 +250,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         if: startsWith(github.ref, 'refs/tags/') && success() && matrix.docker == 'core'
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GIT_TOKEN }}
           file: '*.tar'
           tag: ${{ github.ref }}
           overwrite: true
@@ -249,7 +260,7 @@ jobs:
   # deploy-raspberry-image:
   #   needs: deploy-docker-images
   #   if: github.event_name != 'pull_request'
-  #   runs-on: blueos-ci
+  #   runs-on: self-hosted
   #   # The runner for this job is a Raspberry Pi OS Bullseye.
   #   # Just install docker (curl -sSL https://get.docker.com/ | sh) and follow the instructions for setting up a new runner in
   #   # https://github.com/bluerobotics/BlueOS-docker/settings/actions/runners/new
@@ -302,7 +313,7 @@ jobs:
   #       uses: svenstaro/upload-release-action@v2
   #       if: startsWith(github.ref, 'refs/tags/')
   #       with:
-  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         repo_token: ${{ secrets.GIT_TOKEN }}
   #         file: BlueOS-raspberry.zip
   #         tag: ${{ github.ref }}
   #         overwrite: true
