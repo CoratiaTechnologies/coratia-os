@@ -4,7 +4,7 @@
     outlined
     width="300"
   >
-    <v-alert
+    <!-- <v-alert
       v-if="!settings.is_pirate_mode"
       colored-border
       type="info"
@@ -14,7 +14,7 @@
     >
       Use Pirate Mode to show hidden pages and advanced settings.
       Pirate powers should be used with care.
-    </v-alert>
+    </v-alert> -->
     <v-btn
       @click="togglePirateMode"
     >

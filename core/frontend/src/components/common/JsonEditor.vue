@@ -110,8 +110,8 @@ export default {
 }
 
 .editor {
-  background-color: #3883fa;
-  border: thin solid #3883fa;
+  background-color: #FFCA3A;
+  border: thin solid #FFCA3A;
   box-sizing: border-box;
   position: relative;
   padding: 0;
