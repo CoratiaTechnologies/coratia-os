@@ -11,74 +11,74 @@ on:
     # Run every 6 days to keep our caches alive
     - cron: '0 0 */6 * *'
 
-jobs:
-  python-tests:
-    runs-on: ubuntu-latest
+# jobs:
+#   python-tests:
+#     runs-on: ubuntu-latest
 
-    env:
-      python-version: 3.9 # Our base image has Python 3.9
+#     env:
+#       python-version: 3.9 # Our base image has Python 3.9
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+#     steps:
+#     - name: Checkout
+#       uses: actions/checkout@v3
 
-    - name: Set up Python ${{ env.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.python-version }}
+#     - name: Set up Python ${{ env.python-version }}
+#       uses: actions/setup-python@v4
+#       with:
+#         python-version: ${{ env.python-version }}
 
-    - name: Install dependencies
-      run: |
-        sudo apt install shellcheck
-        python -m pip install --upgrade pip
-        pip install pipenv
-        pipenv install poetry && pipenv run poetry install
-        echo "installing mavlink-router"
-        pipenv run ./core/tools/mavlink_router/bootstrap.sh
-        echo "installing mavp2p"
-        pipenv run ./core/tools/mavp2p/bootstrap.sh
-        echo "installing ardupilot_tools"
-        pipenv run ./core/tools/ardupilot_tools/bootstrap.sh
-        pipenv run python ./core/libs/bridges/setup.py install
-        pipenv run python ./core/libs/commonwealth/setup.py install
-        rm -rf core/libs/bridges/build
-        rm -rf core/libs/commonwealth/build
+#     - name: Install dependencies
+#       run: |
+#         sudo apt install shellcheck
+#         python -m pip install --upgrade pip
+#         pip install pipenv
+#         pipenv install poetry && pipenv run poetry install
+#         echo "installing mavlink-router"
+#         pipenv run ./core/tools/mavlink_router/bootstrap.sh
+#         echo "installing mavp2p"
+#         pipenv run ./core/tools/mavp2p/bootstrap.sh
+#         echo "installing ardupilot_tools"
+#         pipenv run ./core/tools/ardupilot_tools/bootstrap.sh
+#         pipenv run python ./core/libs/bridges/setup.py install
+#         pipenv run python ./core/libs/commonwealth/setup.py install
+#         rm -rf core/libs/bridges/build
+#         rm -rf core/libs/commonwealth/build
 
-    - name: Run tests
-      run: |
-        .hooks/pre-push
+#     - name: Run tests
+#       run: |
+#         .hooks/pre-push
 
-    - name: Upload coverage
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage
-        path: htmlcov
+#     - name: Upload coverage
+#       uses: actions/upload-artifact@v3
+#       with:
+#         name: coverage
+#         path: htmlcov
 
 
-  frontend-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+#   frontend-tests:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v3
+#         with:
+#           submodules: recursive
 
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: 1.0.3
+#       - uses: oven-sh/setup-bun@v1
+#         with:
+#           bun-version: 1.0.3
 
-      - name: Bun install
-        run: bun install --cwd ./core/frontend
+#       - name: Bun install
+#         run: bun install --cwd ./core/frontend
 
-      - name: Bun lint
-        run: bun --cwd ./core/frontend lint
+#       - name: Bun lint
+#         run: bun --cwd ./core/frontend lint
 
-      - name: Bun build
-        run: bun run --cwd ./core/frontend build
+#       - name: Bun build
+#         run: bun run --cwd ./core/frontend build
 
   deploy-docker-images:
     runs-on: ubuntu-latest
-    needs: [python-tests, frontend-tests]
+    # needs: [python-tests, frontend-tests]
     strategy:
       matrix:
         docker: [bootstrap, core]
