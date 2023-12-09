@@ -128,7 +128,7 @@ export default Vue.extend({
     },
     update_title() {
       const sysid = this.system_id !== 1 ? `(${this.system_id}) ` : ''
-      document.title = `${sysid}${this.vehicle_name} - BlueOS`
+      document.title = `${sysid}${this.vehicle_name} - CoratiaOS`
     },
     save() {
       this.save_name()
