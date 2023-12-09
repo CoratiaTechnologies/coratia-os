@@ -573,7 +573,7 @@ export default Vue.extend({
       // In an update process the page may not be the 'Main' page, check tour when page changes
       this.checkTour()
       // Env may not exist when running it with `yarn serve`
-      const project_name = process.env.PROJECT_NAME ?? 'BlueOS'
+      const project_name = process.env.PROJECT_NAME ?? 'CoratiaOS'
       if (this.$route.name === this.$router.options.routes!.first()!.name) {
         document.title = project_name
         return
