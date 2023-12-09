@@ -19,7 +19,7 @@
         Please file an issue at <a
           href="https://github.com/bluerobotics/BlueOS/issues"
           target="_blank"
-        >BlueOS/issues</a>
+        >CoratiaOS/issues</a>
         or post on our <a
           href="https://discuss.bluerobotics.com/c/bluerobotics-software/blue-os/85"
           target="_blank"

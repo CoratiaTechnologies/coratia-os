@@ -17,7 +17,7 @@ const vuetify = new Vuetify({
     options: { customProperties: true },
     themes: {
       light: {
-        // Default colors used by BlueOS
+        // Default colors used by CoratiaOS
         primary: DEFAULT_COLORS.PRIMARY,
         secondary: DEFAULT_COLORS.SECONDARY,
         accent: DEFAULT_COLORS.ACCENT,
@@ -36,7 +36,7 @@ const vuetify = new Vuetify({
         oyster: BR_COLORS.OYSTER,
       },
       dark: {
-        // Default colors used by BlueOS
+        // Default colors used by CoratiaOS
         primary: DEFAULT_COLORS.PRIMARY,
         secondary: DEFAULT_COLORS.SECONDARY,
         accent: DEFAULT_COLORS.ACCENT,
