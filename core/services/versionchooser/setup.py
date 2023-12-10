@@ -40,7 +40,7 @@ for filename, url in static_files.items():
 setup(
     name="versionchooser_service",
     version="0.1.0",
-    description="Blue Robotics Ardusub BlueOS Version Chooser",
+    description="Coratia Technologies Ardusub CoratiaOS Version Chooser",
     license="MIT",
     install_requires=[
         "aiodocker == 0.21.0",

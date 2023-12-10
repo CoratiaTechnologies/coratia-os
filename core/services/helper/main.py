@@ -205,7 +205,7 @@ class Helper:
         2770,  # NGINX
     }
     KNOWN_SERVICES: Set[ServiceInfo] = set()
-    # Whether we should or not keep a BlueOS system service when it's TCP port is not alive.
+    # Whether we should or not keep a CoratiaOS system service when it's TCP port is not alive.
     # If 'False', when a service dies, it is not returned as an available service
     KEEP_BLUEOS_SERVICES_ALIVE = False
     # Wether or not we should rescan periodically all services

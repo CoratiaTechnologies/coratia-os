@@ -50,7 +50,7 @@ DELTA_JSON = {
 }
 
 # To prevent deletion of user configuration lines in config.txt, users can include an inline comment immediately after each configuration line using the specified word.
-# However, it is important to note that conflicting configurations can happen, potentially impacting the kernel's loading process or causing harm to BlueOS.
+# However, it is important to note that conflicting configurations can happen, potentially impacting the kernel's loading process or causing harm to CoratiaOS.
 CONFIG_USER_PROTECTION_WORD = 'custom'
 
 import collections
@@ -404,7 +404,7 @@ def main() -> int:
     current_git_version = os.getenv('GIT_DESCRIBE_TAGS')
     match = re.match(r'(?P<tag>.*)-(?P<commit_number>\d+)-(?P<commit_hash>[a-z0-9]+)', current_git_version)
     tag, commit_number, commit_hash = match['tag'], match['commit_number'], match['commit_hash']
-    print(f"Running BlueOS: {tag=}, {commit_number=}, {commit_hash=}")
+    print(f"Running CoratiaOS: {tag=}, {commit_number=}, {commit_hash=}")
 
     if not run_command_is_working():
         print("Critical error: Something is wrong with the host computer, run_command is not working.")

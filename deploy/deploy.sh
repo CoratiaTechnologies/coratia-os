@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Legacy script used to generate BlueOS images from sdcards
+# Legacy script used to generate CoratiaOS images from sdcards
 
 DEV_DISK=$1
 IMAGE_FILE=$2
@@ -43,7 +43,7 @@ if udevadm info $DEV_DISK | grep ID_BUS=usb > /dev/null; then
     error "$DEV_DISK is not on the USB bus!"
 fi
 
-# TODO: make sure the disk contains a BlueOS OS image
+# TODO: make sure the disk contains a CoratiaOS OS image
 # check it is top level disk device, not a partition
 
 # Check size

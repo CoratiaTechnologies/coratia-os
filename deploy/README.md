@@ -1,1 +1,1 @@
-# Temporary helpers to generate BlueOS images
+# Temporary helpers to generate CoratiaOS images

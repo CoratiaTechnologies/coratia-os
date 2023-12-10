@@ -28,7 +28,7 @@ init_logger(SERVICE_NAME)
 
 app = FastAPI(
     title="Commander API",
-    description="Commander is a BlueOS service responsible to abstract simple commands to the frontend.",
+    description="Commander is a CoratiaOS service responsible to abstract simple commands to the frontend.",
 )
 app.router.route_class = GenericErrorHandlingRoute
 logger.info("Starting Commander!")

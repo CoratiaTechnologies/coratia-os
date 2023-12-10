@@ -1,4 +1,4 @@
-/** Represents a BlueOS service, with the necessary information to identify it on the system */
+/** Represents a CoratiaOS service, with the necessary information to identify it on the system */
 
 type PythonServiceError = {response: {data: {detail: string}}}
 export type GenericError = Error | PythonServiceError | unknown

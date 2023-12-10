@@ -50,7 +50,7 @@ class Detector:
         logger.debug("Trying to detect Linux board.")
         if is_navigator_r5_connected():
             logger.debug("Navigator R5 detected.")
-            return FlightController(name="Navigator", manufacturer="Blue Robotics", platform=Platform.Navigator)
+            return FlightController(name="Navigator", manufacturer="Coratia Technologies", platform=Platform.Navigator)
         if is_argonot_r1_connected():
             logger.debug("Argonot R1 detected.")
             return FlightController(name="Argonot", manufacturer="SymbyTech", platform=Platform.Argonot)

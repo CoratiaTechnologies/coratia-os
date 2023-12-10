@@ -49,7 +49,7 @@ fi
 # the container `/etc/resolv.conf` based on the host's one, or some docker configuration, however,
 # during the container's lifetime, if the host's DNS configuration changes, the container's DNS
 # doesn't follow it, making the container (possibly) unable to resolve DNSs correctly, failing
-# the BlueOS Helper's internet connection check. By syncing the container's resolv.conf with the
+# the CoratiaOS Helper's internet connection check. By syncing the container's resolv.conf with the
 # host's one, we make sure the container's DNS configuration follows the host's changes, thus,
 # ensuring the container is able to resolve DNSs correctly.
 HOST_RESOLV_CONF=/etc/resolv.conf.host
@@ -124,4 +124,4 @@ for TUPLE in "${SERVICES[@]}"; do
     create_service $NAME "$EXECUTABLE"
 done
 
-echo "BlueOS running!"
+echo "CoratiaOS running!"

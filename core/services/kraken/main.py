@@ -38,7 +38,7 @@ kraken = Kraken()
 
 app = FastAPI(
     title="Kraken API",
-    description="Kraken is the BlueOS service responsible for installing and managing thirdy-party extensions.",
+    description="Kraken is the CoratiaOS service responsible for installing and managing thirdy-party extensions.",
 )
 app.router.route_class = GenericErrorHandlingRoute
 logger.info("Releasing the Kraken!")

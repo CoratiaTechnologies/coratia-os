@@ -27,7 +27,7 @@ from api.manager import (
 
 SERVICE_NAME = "cable-guy"
 
-parser = argparse.ArgumentParser(description="CableGuy service for Blue Robotics BlueOS")
+parser = argparse.ArgumentParser(description="CableGuy service for Coratia Technologies CoratiaOS")
 parser.add_argument(
     "--default_config",
     dest="default_config",
@@ -54,7 +54,7 @@ HTML_FOLDER = Path.joinpath(Path(__file__).parent.absolute(), "html")
 
 app = FastAPI(
     title="Cable Guy API",
-    description="Cable Guy is responsible for managing internet interfaces on BlueOS.",
+    description="Cable Guy is responsible for managing internet interfaces on CoratiaOS.",
     default_response_class=PrettyJSONResponse,
     debug=True,
 )

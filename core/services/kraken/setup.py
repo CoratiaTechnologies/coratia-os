@@ -5,7 +5,7 @@ import setuptools
 setuptools.setup(
     name="Kraken",
     version="0.1.0",
-    description="Manages BlueOS extensions",
+    description="Manages CoratiaOS extensions",
     license="MIT",
     install_requires=[
         "aiodocker == 0.21.0",

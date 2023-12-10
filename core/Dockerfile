@@ -18,7 +18,7 @@ FROM bluerobotics/blueos-base:v0.0.10 as downloadBinaries
 COPY tools /home/pi/tools
 RUN /home/pi/tools/install-static-binaries.sh
 
-# BlueOS-docker base image
+# CoratiaOS-docker base image
 FROM bluerobotics/blueos-base:v0.0.10
 
 # Install necessary tools
