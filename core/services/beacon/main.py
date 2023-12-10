@@ -73,7 +73,8 @@ class AsyncRunner:
 
 
 class Beacon:
-    DEFAULT_HOSTNAME = "blueos"
+    # DEFAULT_HOSTNAME = "blueos"
+    DEFAULT_HOSTNAME = "coratiaos"
 
     def __init__(self) -> None:
         self.runners: Dict[str, AsyncRunner] = {}

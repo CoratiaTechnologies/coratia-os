@@ -32,7 +32,7 @@ AVAHI_HOST_NAME="blueos-avahi"
 
 echo "Configure hostname to blueos"
 OLD_HOSTNAME="$(cat /etc/hostname)"
-NEW_HOSTNAME="blueos"
+NEW_HOSTNAME="coratiaos"
 # Overwrite with new name
 echo $NEW_HOSTNAME > /etc/hostname
 # Replace current name

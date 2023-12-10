@@ -280,11 +280,11 @@ export default Vue.extend({
       configuration_failed: false,
       error_message: 'The operation failed!',
       apply_status: ApplyStatus.Waiting,
-      mdns_name: 'blueos',
+      mdns_name: 'coratiaos',
       should_open: false,
       step_number: 0,
       sub_model: models('./bluerov.glb'),
-      vehicle_name: 'blueos',
+      vehicle_name: 'Jalasimha',
       vehicle_type: Vehicle.Sub,
       vehicle_image: null as string | null,
       // Allow us to check if the user is stuck in retry
