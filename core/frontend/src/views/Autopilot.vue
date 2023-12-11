@@ -135,11 +135,16 @@ export default Vue.extend({
         version = `${this.firmware_info.version} (${this.firmware_info.type})`
       }
 
+/*
       const record: Record<string, string> = {
         'Board name': this.current_board?.name ?? 'Unknown',
         Manufacturer: this.current_board?.manufacturer ?? 'Unknown',
         'Mavlink platform': this.current_board?.platform ?? 'Unknown',
         'Firmware version': version,
+        'Vehicle type': this.vehicle_type ?? 'Unknown',
+      }
+*/
+      const record: Record<string, string> = {
         'Vehicle type': this.vehicle_type ?? 'Unknown',
       }
 
