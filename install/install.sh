@@ -209,9 +209,12 @@ sed -i "\%^exit 0%idocker start blueos-bootstrap" /etc/rc.local || echo "sed fai
 echo "Starting network configuration."
 curl -fsSL $ROOT/install/network/avahi.sh | bash
 
+sleep 5
+echo "Automatically Install Extension"
+docker run -d --net=host -v /root/.config/blueos:/root/.config --name=BlueOS-Water-Linked-DVL --restart=unless-stopped williangalvani/blueos-dvl:latest
+
 echo "Installation finished successfully."
 echo "You can access after the reboot:"
-echo "- The computer webpage: http://blueos.local"
-echo "- The ssh client: pi@blueos.local"
+echo "- The computer webpage: http://192.168.2.2"
 echo "System will reboot in 10 seconds."
 sleep 10 && reboot
