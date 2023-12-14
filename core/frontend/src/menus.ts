@@ -21,13 +21,13 @@ const menus = [
     text: 'List all available services found in CoratiaOS serving http interfaces, and their'
       + ' respective API documentations.',
   },
-  {
-    title: 'Bag Editor',
-    icon: 'mdi-code-json',
-    route: '/tools/bag-editor',
-    advanced: true,
-    text: 'Editor for Bag Of Holding service.',
-  },
+  // {
+  //   title: 'Bag Editor',
+  //   icon: 'mdi-code-json',
+  //   route: '/tools/bag-editor',
+  //   advanced: true,
+  //   text: 'Editor for Bag Of Holding service.',
+  // },
   {
     title: 'CoratiaOS Version',
     icon: 'mdi-cellphone-arrow-down',
