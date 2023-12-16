@@ -117,7 +117,7 @@ class VersionChooser:
 
         Args:
             request (web.Request): http request from aiohttp
-            repository (str): name of the image, such as bluerobotics/blueos-core
+            repository (str): name of the image, such as coratia/blueos-core
             tag (str): image tag
 
         Returns:
@@ -336,7 +336,7 @@ class VersionChooser:
         """Returns versions available locally and in the remote
 
         Args:
-            repository (str): repository name (such as bluerobotics/blueos-core)
+            repository (str): repository name (such as coratia/blueos-core)
             tag (str): tag (such as "master" or "latest")
 
         Returns:

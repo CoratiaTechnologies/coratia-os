@@ -241,7 +241,7 @@ export default Vue.extend({
       return this.loading || this.deleting || this.updating
     },
     isFromBR(): boolean {
-      return this.image.repository === 'bluerobotics/blueos-core'
+      return this.image.repository === 'coratia/blueos-core'
     },
     showBootstrapUpdate(): boolean {
       if (!this.bootstrapVersion || !helper.has_internet) {
