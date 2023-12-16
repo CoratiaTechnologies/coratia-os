@@ -18,13 +18,13 @@
         >
           ({{ system_id }})
         </span>
-        <v-btn
+/*        <v-btn
           class="mx-2 edit-icon"
           fab
           dark
           x-small
           @click="openDialog"
-        >
+        > */
           <v-icon>
             mdi-pencil
           </v-icon>

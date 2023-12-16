@@ -9,7 +9,8 @@
       :src="image !== null ? image : defaultImage"
       @click="openDialog()"
     />
-    <v-btn
+    
+/*    <v-btn
       id="edit-icon"
       class="mx-2"
       fab
@@ -17,6 +18,7 @@
       x-small
       @click="openDialog"
     >
+*/
       <v-icon>
         mdi-pencil
       </v-icon>
