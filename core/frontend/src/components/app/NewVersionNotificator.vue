@@ -42,7 +42,7 @@ export default Vue.extend({
       current_version: null as (null | Version),
       latest_beta: undefined as (undefined | Version),
       latest_stable: undefined as (undefined | Version),
-      selected_image: 'sakthiveljayabal/blueos-core',
+      selected_image: 'coratia/blueos-core',
       latest_version: undefined as (undefined | Version),
       should_open: false,
     }
