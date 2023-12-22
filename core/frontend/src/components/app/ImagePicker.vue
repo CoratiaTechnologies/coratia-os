@@ -7,17 +7,17 @@
       class="shrink"
       contain
       :src="image !== null ? image : defaultImage"
-      @click="openDialog()"
+      <!-- @click="openDialog()" -->
     />
     
-   <!-- <v-btn
+   <v-btn
       id="edit-icon"
       class="mx-2"
       fab
       dark
       x-small
-      @click="openDialog"
-    > -->
+      <!-- @click="openDialog()" -->
+    >
 
       <v-icon>
         mdi-pencil
