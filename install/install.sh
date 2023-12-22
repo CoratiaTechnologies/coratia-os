@@ -155,7 +155,7 @@ test $NO_CLEAN || (
 )
 
 # Start installing necessary files and system configuration
-echo "Going to install coratiaosdocker version ${VERSION}."
+echo "Going to install coratiaos-docker version ${VERSION}."
 
 echo "Downloading and installing udev rules."
 curl -fsSL $ROOT/install/udev/100.autopilot.rules -o /etc/udev/rules.d/100.autopilot.rules
@@ -181,20 +181,20 @@ command -v raspi-config && (
 )
 
 echo "Downloading bootstrap"
-BLUEOS_BOOTSTRAP="coratia/coratiaosbootstrap:$VERSION" # Use current version
-BLUEOS_CORE="coratia/coratiaoscore:$VERSION" # We don't have a stable tag yet
-BLUEOS_FACTORY="coratia/coratiaoscore:factory" # used for "factory reset"
+BLUEOS_BOOTSTRAP="coratia/coratiaos-bootstrap:$VERSION" # Use current version
+BLUEOS_CORE="coratia/coratiaos-core:$VERSION" # We don't have a stable tag yet
+BLUEOS_FACTORY="coratia/coratiaos-core:factory" # used for "factory reset"
 
 docker pull $BLUEOS_BOOTSTRAP
 docker pull $BLUEOS_CORE
 # Use current release version for factory fallback
 docker image tag $BLUEOS_CORE $BLUEOS_FACTORY
 
-# Create coratiaosbootstrap container
+# Create coratiaos-bootstrap container
 docker create \
     -t \
     --restart unless-stopped \
-    --name coratiaosbootstrap \
+    --name coratiaos-bootstrap \
     --net=host \
     -v $HOME/.config/blueos/bootstrap:/root/.config/bootstrap \
     -v /var/run/docker.sock:/var/run/docker.sock \
@@ -202,7 +202,7 @@ docker create \
     $BLUEOS_BOOTSTRAP
 
 # add docker entry to rc.local
-sed -i "\%^exit 0%idocker start coratiaosbootstrap" /etc/rc.local || echo "sed failed to add expand_fs entry in /etc/rc.local"
+sed -i "\%^exit 0%idocker start coratiaos-bootstrap" /etc/rc.local || echo "sed failed to add expand_fs entry in /etc/rc.local"
 
 # Configure network settings
 ## This should be after everything, otherwise network problems can happen
