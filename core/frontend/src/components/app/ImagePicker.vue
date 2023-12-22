@@ -19,11 +19,11 @@
       <!-- @click="openDialog()" -->
     >
 
-      <v-icon>
+      <!-- <v-icon>
         mdi-pencil
-      </v-icon>
+      </v-icon> -->
     </v-btn>
-    <v-dialog v-model="dialog" @dragover.prevent @dragenter.prevent @drop.prevent="onDrop">
+    <!-- <v-dialog v-model="dialog" @dragover.prevent @dragenter.prevent @drop.prevent="onDrop">
       <v-card class="pa-2">
         <v-card-title>
           Pick an Image
@@ -93,7 +93,7 @@
           {{ upload_error }}
         </v-alert>
       </v-card>
-    </v-dialog>
+    </v-dialog> -->
   </div>
 </template>
 
