@@ -731,9 +731,7 @@ div.pirate-marker.v-icon {
   padding-left: 32px;
 }
 
-.v-icon {
-    color: #000;
-}
+
 #context-menu {
   position: fixed;
   z-index: 10000;
@@ -750,6 +748,11 @@ div.pirate-marker.v-icon {
 </style>
 
 <style>
+
+.v-icon {
+    color: #000;
+} 
+
 .v-list-group__header__append-icon {
   margin-left: 0px !important;
   min-width: 24px !important;
