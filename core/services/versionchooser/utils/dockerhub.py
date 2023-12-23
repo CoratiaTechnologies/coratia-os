@@ -47,7 +47,7 @@ class TagFetcher:
         Gets a token for dockerhub.com
         Args:
             auth_url: authentication url, default to https://auth.docker.io
-            image_name: image name, for example "bluerobotics/core"
+            image_name: image name, for example "coratia/core"
 
         Raises:
             Exception: Raised if unable to get the token
