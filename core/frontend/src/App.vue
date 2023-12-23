@@ -731,6 +731,9 @@ div.pirate-marker.v-icon {
   padding-left: 32px;
 }
 
+.v-icon {
+    color: #000;
+}
 #context-menu {
   position: fixed;
   z-index: 10000;
