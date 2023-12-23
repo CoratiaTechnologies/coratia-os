@@ -25,7 +25,7 @@ class VersionChooser:
     def __init__(self, client: aiodocker.Docker):
         self.client = client
         self.cleanup()
-        self.bootstrap_name = "blueos-bootstrap"
+        self.bootstrap_name = "coratiaos-bootstrap"
 
     @staticmethod
     def cleanup() -> None:
@@ -117,7 +117,7 @@ class VersionChooser:
 
         Args:
             request (web.Request): http request from aiohttp
-            repository (str): name of the image, such as coratia/blueos-core
+            repository (str): name of the image, such as coratia/coratiaos-core
             tag (str): image tag
 
         Returns:
@@ -197,7 +197,7 @@ class VersionChooser:
 
         HOME = "/root"
         bootstrap_config = {
-            "Image": f"bluerobotics/blueos-bootstrap:{tag}",
+            "Image": f"bluerobotics/coratiaos-bootstrap:{tag}",
             "HostConfig": {
                 "RestartPolicy": {"Name": "unless-stopped"},
                 "NetworkMode": "host",
@@ -245,7 +245,7 @@ class VersionChooser:
                 startup_file.truncate()
 
                 logger.info("Stopping core...")
-                core = await self.client.containers.get("blueos-core")  # type: ignore
+                core = await self.client.containers.get("coratiaos-core")  # type: ignore
                 if core:
                     await core.kill()
                     result = await core.wait()  # type: ignore
@@ -298,7 +298,7 @@ class VersionChooser:
         for image in await self.client.images.list():
             if not image["RepoTags"]:
                 continue
-            if not any("/blueos-core:" in tag for tag in image["RepoTags"]):
+            if not any("/coratiaos-core:" in tag for tag in image["RepoTags"]):
                 continue
             for image_tag in image["RepoTags"]:
                 image_repository, tag = image_tag.split(":")
@@ -336,7 +336,7 @@ class VersionChooser:
         """Returns versions available locally and in the remote
 
         Args:
-            repository (str): repository name (such as coratia/blueos-core)
+            repository (str): repository name (such as coratia/coratiaos-core)
             tag (str): tag (such as "master" or "latest")
 
         Returns:
@@ -353,6 +353,6 @@ class VersionChooser:
             web.Response: always 200
         """
         logger.info("Stopping core...")
-        core = await self.client.containers.get("blueos-core")  # type: ignore
+        core = await self.client.containers.get("coratiaos-core")  # type: ignore
         await core.kill()
         return web.Response(status=200, text="Restarting...")

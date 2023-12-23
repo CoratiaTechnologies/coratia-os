@@ -1,3 +1,3 @@
 # CoratiaOS-runner
 
-Runs an instance of a github self hosted runner for blueos-core repository
+Runs an instance of a github self hosted runner for coratiaos-core repository
