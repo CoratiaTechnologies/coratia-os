@@ -12,7 +12,7 @@ from bootstrap.bootstrap import Bootstrapper
 
 SAMPLE_JSON = """{
     "core": {
-        "tag": "coratia",
+        "tag": "coratiaos",
         "image": "coratia/coratiaos-core",
         "enabled": true,
         "webui": false,
