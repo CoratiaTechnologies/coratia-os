@@ -1,7 +1,7 @@
 {
     "core": {
         "tag": "factory",
-        "image": "coratia/blueos-core",
+        "image": "coratia/coratiaos-core",
         "enabled": true,
         "webui": false,
         "network": "host",

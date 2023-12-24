@@ -241,14 +241,14 @@ export default Vue.extend({
       return this.loading || this.deleting || this.updating
     },
     isFromBR(): boolean {
-      return this.image.repository === 'coratia/blueos-core'
+      return this.image.repository === 'coratia/coratiaos-core'
     },
     showBootstrapUpdate(): boolean {
       if (!this.bootstrapVersion || !helper.has_internet) {
         return false
       }
       return this.settings.is_pirate_mode && this.current && !this.updateAvailable && this.isFromBR
-        && this.bootstrapVersion !== `${this.image.repository.split('/')[0]}/blueos-bootstrap:${this.image.tag}`
+        && this.bootstrapVersion !== `${this.image.repository.split('/')[0]}/coratiaos-bootstrap:${this.image.tag}`
     },
   },
   methods: {
@@ -266,7 +266,7 @@ export default Vue.extend({
     },
     updateBootstrap() {
       this.bootstrapDialog = false
-      this.$emit('update-bootstrap', `bluerobotics/blueos-bootstrap:${this.image.tag}`)
+      this.$emit('update-bootstrap', `coratia/coratiaos-bootstrap:${this.image.tag}`)
     },
   },
 })

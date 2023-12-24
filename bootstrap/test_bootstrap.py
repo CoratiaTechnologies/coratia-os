@@ -13,7 +13,7 @@ from bootstrap.bootstrap import Bootstrapper
 SAMPLE_JSON = """{
     "core": {
         "tag": "coratia",
-        "image": "coratia/blueos-core",
+        "image": "coratia/coratiaos-core",
         "enabled": true,
         "webui": false,
         "network": "host",
@@ -283,9 +283,9 @@ class BootstrapperTests(TestCase):  # type: ignore
         # this should timeout AND restart core
         bootstrapper.run()
         # if the timeout worked, the container age will be zero
-        assert fake_client.containers.get("blueos-core").age() == 0
+        assert fake_client.containers.get("coratiaos-core").age() == 0
         # check if the age is what we expected, just in case
-        assert fake_client.containers.get("blueos-core").created_time == start_time + 1000
+        assert fake_client.containers.get("coratiaos-core").created_time == start_time + 1000
         mock_time.stop()
 
     def test_default_is_valid_json(self) -> None:

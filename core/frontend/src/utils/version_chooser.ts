@@ -8,7 +8,7 @@ import {
 import back_axios from '@/utils/api'
 
 const API_URL = '/version-chooser/v1.0'
-const DEFAULT_REMOTE_IMAGE = 'bluerobotics/blueos-core'
+const DEFAULT_REMOTE_IMAGE = 'coratia/coratiaos-core'
 
 const notifier = new Notifier(version_chooser_service)
 

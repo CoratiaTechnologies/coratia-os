@@ -246,7 +246,7 @@ export default Vue.extend({
       loading_images: false,
       updating_bootstrap: false,
       waiting: false,
-      selected_image: 'coratia/blueos-core',
+      selected_image: 'coratia/coratiaos-core',
       deleting: '', // image currently being deleted, if any
     }
   },

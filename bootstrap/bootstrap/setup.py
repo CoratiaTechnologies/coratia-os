@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(
-    name="blueos_bootstrap",
+    name="coratiaos_bootstrap",
     version="0.0.1",
     description="Coratia Technologies Ardusub CoratiaOS Docker System Bootstrap",
     license="MIT",
