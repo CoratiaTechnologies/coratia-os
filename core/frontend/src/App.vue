@@ -750,7 +750,7 @@ div.pirate-marker.v-icon {
 <style>
 
 .v-icon {
-    color: #000;
+    color: #000 !important;
 } 
 
 .v-list-group__header__append-icon {
