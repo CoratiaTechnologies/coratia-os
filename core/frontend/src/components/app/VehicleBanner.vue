@@ -5,7 +5,7 @@
         size="35px"
         directory="/userdata/images/vehicle"
         readonly-directory="/vehicles/images"
-        :default-image="require('@/assets/vehicles/images/unknown.svg')"
+        :default-image="require('@/assets/vehicles/images/bluerov2.png')"
         :image="vehicle_image"
         @image-selected="save_vehicle_image"
       />
