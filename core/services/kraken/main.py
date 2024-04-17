@@ -2,12 +2,12 @@
 import argparse
 import asyncio
 import logging
-from typing import Any, List
+from typing import Any, Iterable
 
 from commonwealth.utils.apis import GenericErrorHandlingRoute
 from commonwealth.utils.logs import InterceptHandler, init_logger
 from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, StreamingResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from pydantic import BaseModel
@@ -78,7 +78,18 @@ async def install_extension(extension: Extension) -> Any:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid extension description",
         )
-    return StreamingResponse(kraken.install_extension(extension))
+    if not kraken.has_enough_disk_space():
+        raise HTTPException(
+            status_code=status.HTTP_507_INSUFFICIENT_STORAGE,
+            detail="Not enough disk space to install the extension",
+        )
+    compatible_digest = await kraken.is_compatible_extension(extension.identifier, extension.tag)
+    if not compatible_digest:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Extension is not compatible with the current machine running BlueOS.",
+        )
+    return StreamingResponse(kraken.install_extension(extension, compatible_digest))
 
 
 @app.post("/extension/update_to_version", status_code=status.HTTP_201_CREATED)
@@ -126,10 +137,10 @@ async def list_containers() -> Any:
     ]
 
 
-@app.get("/log", status_code=status.HTTP_200_OK)
+@app.get("/log", status_code=status.HTTP_200_OK, response_class=PlainTextResponse)
 @version(1, 0)
-async def log_containers(container_name: str) -> List[str]:
-    return await kraken.load_logs(container_name)
+async def log_containers(container_name: str) -> Iterable[bytes]:
+    return StreamingResponse(kraken.stream_logs(container_name), media_type="text/plain")  # type: ignore
 
 
 @app.get("/stats", status_code=status.HTTP_200_OK)

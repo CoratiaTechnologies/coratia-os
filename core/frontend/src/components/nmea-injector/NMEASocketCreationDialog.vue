@@ -24,12 +24,14 @@
 
           <v-text-field
             v-model="nmea_socket.port"
+            type="number"
             :rules="[validate_required_field, is_socket_port]"
             label="Socket port"
           />
 
           <v-text-field
             v-model="nmea_socket.component_id"
+            type="number"
             :counter="3"
             label="Mavlink component ID"
             :rules="[validate_required_field, is_component_id]"
@@ -64,17 +66,13 @@
 <script lang="ts">
 import Vue from 'vue'
 
-import Notifier from '@/libs/notifier'
 import nmea_injector from '@/store/nmea-injector'
 import { SocketKind } from '@/types/common'
-import { nmea_injector_service } from '@/types/frontend_services'
+import { NMEASocket } from '@/types/nmea-injector'
 import { VForm } from '@/types/vuetify'
-import back_axios from '@/utils/api'
 import {
   isIntegerString, isNotEmpty, isSocketPort,
 } from '@/utils/pattern_validators'
-
-const notifier = new Notifier(nmea_injector_service)
 
 export default Vue.extend({
   name: 'NMEASocketCreationDialog',
@@ -93,9 +91,9 @@ export default Vue.extend({
     return {
       nmea_socket: {
         kind: SocketKind.UDP,
-        port: '27000',
-        component_id: '220', // MAV_COMPONENT ID of 220 refers to MAV_COMP_ID_GPS #1, usually used for external GPSs
-      },
+        port: 27000,
+        component_id: 220, // MAV_COMPONENT ID of 220 refers to MAV_COMP_ID_GPS #1, usually used for external GPSs
+      } as NMEASocket,
     }
   },
   computed: {
@@ -113,18 +111,20 @@ export default Vue.extend({
       const string_input = String(input)
       return isNotEmpty(string_input) ? true : 'Required field.'
     },
-    is_socket_port(input: string): (true | string) {
-      if (!isIntegerString(input)) {
+    is_socket_port(input: string | number): (true | string) {
+      const input_as_string = String(input)
+      if (!isIntegerString(input_as_string)) {
         return 'Please use an integer value.'
       }
-      const int_input = parseInt(input, 10)
+      const int_input = parseInt(input_as_string, 10)
       return isSocketPort(int_input) ? true : 'Invalid port.'
     },
-    is_component_id(input: string): (true | string) {
-      if (!isIntegerString(input)) {
+    is_component_id(input: string | number): (true | string) {
+      const input_as_string = String(input)
+      if (!isIntegerString(input_as_string)) {
         return 'Please use an integer value.'
       }
-      const int_input = parseInt(input, 10)
+      const int_input = parseInt(input_as_string, 10)
       // Mavlink MAV_COMPONENT IDs range from 25 to 250: https://mavlink.io/en/messages/minimal.html#MAV_COMPONENT
       const is_in_id_range = int_input >= 25 && int_input <= 250
       return is_in_id_range ? true : 'Please use a valid component ID (check Mavlink documentation for valid IDs).'
@@ -135,20 +135,10 @@ export default Vue.extend({
         return false
       }
 
-      nmea_injector.setUpdatingNMEASockets(true)
       this.showDialog(false)
-
-      await back_axios({
-        method: 'post',
-        url: `${nmea_injector.API_URL}/socks`,
-        timeout: 10000,
-        data: this.nmea_socket,
-      })
+      nmea_injector.createNMEASocket(this.nmea_socket)
         .then(() => {
           this.form.reset()
-        })
-        .catch((error) => {
-          notifier.pushBackError('NMEA_SOCKET_CREATE_FAIL', error)
         })
       return true
     },

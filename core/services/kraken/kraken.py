@@ -1,10 +1,11 @@
 import asyncio
 import json
 import re
-from typing import Any, AsyncGenerator, Dict, List, Optional, cast
+from dataclasses import asdict
+from typing import Any, AsyncGenerator, Dict, List, Literal, Optional, cast
 
 import aiodocker
-import aiohttp
+import psutil
 from aiodocker.docker import DockerContainer
 from commonwealth.settings.manager import Manager
 from commonwealth.utils.apis import StackedHTTPException
@@ -12,9 +13,9 @@ from fastapi import status
 from loguru import logger
 
 from exceptions import ContainerDoesNotExist, ExtensionNotFound
+from manifest import Manifest
 from settings import Extension, SettingsV1
 
-REPO_URL = "https://bluerobotics.github.io/BlueOS-Extensions-Repository/manifest.json"
 SERVICE_NAME = "Kraken"
 
 
@@ -25,7 +26,7 @@ class Kraken:
         self.should_run = True
         self.deleting_in_progress = False
         self._client: Optional[aiodocker.Docker] = None
-        self.manifest_cache: List[Dict[str, Any]] = []
+        self.manifest: Manifest = Manifest.instance()
 
     @property
     def client(self) -> aiodocker.Docker:
@@ -78,23 +79,41 @@ class Kraken:
         if not any(container["Names"][0][1:] == extension_name for container in self.running_containers):
             await self.start_extension(extension)
 
+    async def is_compatible_extension(self, identifier: str, tag: str) -> Literal[False] | str | None:
+        """
+        Check if there is a compatible image for this extension tag, if so returns the
+        image digest, otherwise returns False.
+
+        Args:
+            extension (Extension): Extension to check compatibility for.
+
+        Returns:
+            bool | str: False if not compatible, image digest if compatible.
+        """
+
+        version = await self.manifest.get_extension_version(identifier, tag)
+
+        if not version:
+            return False
+
+        compatible_images = [image for image in version.images if image.compatible]
+
+        if not compatible_images:
+            return False
+
+        return compatible_images[0].digest
+
     def load_settings(self) -> None:
         self.manager = Manager(SERVICE_NAME, SettingsV1)
         self.settings = self.manager.settings
 
-    async def fetch_manifest(self) -> Any:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(REPO_URL) as resp:
-                if resp.status != 200:
-                    print(f"Error status {resp.status}")
-                    raise RuntimeError(f"Could not fetch manifest file: response status : {resp.status}")
-                self.manifest_cache = await resp.json()
-                return await resp.json(content_type=None)
+    async def fetch_manifest(self) -> List[Dict[str, Any]]:
+        return [asdict(extension) for extension in await self.manifest.fetch()]
 
     async def get_configured_extensions(self) -> List[Extension]:
         return cast(List[Extension], self.settings.extensions)
 
-    async def install_extension(self, extension: Any) -> AsyncGenerator[bytes, None]:
+    async def install_extension(self, extension: Any, digest: str) -> AsyncGenerator[bytes, None]:
         try:
             # Remove older entry if it exists
             installed_extension = await self.extension_from_identifier(extension.identifier)
@@ -115,9 +134,9 @@ class Kraken:
         self.settings.extensions.append(new_extension)
         self.manager.save()
         try:
-            async for line in self.client.images.pull(
-                f"{extension.docker}:{extension.tag}", repo=extension.docker, tag=extension.tag, stream=True
-            ):
+            tag = f"{extension.docker}:{extension.tag}" + (f":{digest}" if digest else "")
+
+            async for line in self.client.images.pull(tag, repo=extension.docker, tag=extension.tag, stream=True):
                 yield json.dumps(line).encode("utf-8")
         except Exception as error:
             raise StackedHTTPException(status_code=status.HTTP_404_NOT_FOUND, error=error) from error
@@ -164,21 +183,17 @@ class Kraken:
         if not extension:
             raise RuntimeError(f"Extension with identifier {identifier} not found!")
         # TODO: plug dependency-checking in here
-        version_manifests = [entry for entry in self.manifest_cache if entry["identifier"] == identifier]
-        if not version_manifests:
-            raise RuntimeError(f"identifier not found in manifest: {identifier}")
-        manifest = version_manifests[0]
-        if version not in manifest["versions"]:
-            raise RuntimeError(f"version not found in manifest: {version}")
-        await self.uninstall_extension_from_identifier(identifier)
-        version_data = manifest["versions"][version]
+
+        version_data = await self.manifest.get_extension_version(extension.identifier, version)
+        if not version_data:
+            raise RuntimeError(f"Version {version} not found for extension {identifier}.")
 
         new_extension = Extension(
             identifier=identifier,
             name=extension.name,
             docker=extension.docker,
-            tag=version_data["tag"],
-            permissions=json.dumps(version_data["permissions"]),
+            tag=version_data.tag,
+            permissions=json.dumps(version_data.permissions),
             enabled=True,
             # TODO: handle user permissions on updates
             user_permissions="",
@@ -279,17 +294,38 @@ class Kraken:
         containers: List[DockerContainer] = await self.client.containers.list(filter='{"status": ["running"]}')  # type: ignore
         return containers
 
-    async def load_logs(self, container_name: str) -> List[str]:
+    async def stream_logs(self, container_name: str, timeout: int = 30) -> AsyncGenerator[str, None]:
         containers = await self.client.containers.list(filters={"name": {container_name: True}})  # type: ignore
         if not containers:
             raise RuntimeError(f"Container not found: {container_name}")
-        return cast(List[str], await containers[0].log(stdout=True, stderr=True))
 
+        start_time = asyncio.get_event_loop().time()
+        async for log_line in containers[0].log(stdout=True, stderr=True, follow=True, stream=True):
+            elapsed_time = asyncio.get_event_loop().time() - start_time
+            if elapsed_time > timeout:
+                break
+            yield log_line
+        logger.info(f"Finished streaming logs for {container_name}")
+
+    # pylint: disable=too-many-locals
     async def load_stats(self) -> Dict[str, Any]:
         containers = await self.client.containers.list()  # type: ignore
-        container_stats = [(await container.stats(stream=False))[0] for container in containers]
+
+        # Create separate lists of coroutine objects for stats and show
+        stats_coroutines = [container.stats(stream=False) for container in containers]
+        show_coroutines = [container.show(size=1) for container in containers]
+
+        # Run all stats and show coroutine objects concurrently
+        stats_results = await asyncio.gather(*stats_coroutines)
+        show_results = await asyncio.gather(*show_coroutines)
+
+        # Extract the relevant data from the results
+        container_stats = [result[0] for result in stats_results]
+        container_shows = list(show_results)
+
         result = {}
-        for stats in container_stats:
+        total_disk_size = psutil.disk_usage("/").total
+        for stats, show in zip(container_stats, container_shows):
             # Based over: https://github.com/docker/cli/blob/v20.10.20/cli/command/container/stats_helpers.go
             cpu_percent = 0
 
@@ -310,13 +346,27 @@ class Kraken:
             except KeyError:
                 memory_usage = "N/A"
 
+            try:
+                disk_usage = 100 * show["SizeRootFs"] / total_disk_size
+            except KeyError:
+                disk_usage = "N/A"
+
             name = stats["name"].replace("/", "")
 
             result[name] = {
                 "cpu": cpu_percent,
                 "memory": memory_usage,
+                "disk": disk_usage,
             }
         return result
+
+    def has_enough_disk_space(self, path: str = "/", required_mb: int = 2**10) -> bool:
+        try:
+            free_space = psutil.disk_usage(path).free
+            # Right now only check if there is 1GB of free space as a hardcoded value
+            return bool(free_space > required_mb * 2**20)
+        except FileNotFoundError:
+            return False
 
     async def stop(self) -> None:
         self.should_run = False

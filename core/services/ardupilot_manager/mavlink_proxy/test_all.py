@@ -15,6 +15,7 @@ sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 from mavlink_proxy.AbstractRouter import AbstractRouter
 from mavlink_proxy.Endpoint import Endpoint
 from mavlink_proxy.MAVLinkRouter import MAVLinkRouter
+from mavlink_proxy.MAVP2P import MAVP2P
 from mavlink_proxy.MAVProxy import MAVProxy
 from typedefs import EndpointType
 
@@ -151,7 +152,8 @@ def test_endpoint_validators() -> None:
     reason="MavProxy tests are failling for several endpoint combinations. Since it's not being used \
     and it's not a priority to support it, they are being temporarily disabled."
 )
-def test_mavproxy(valid_output_endpoints: Set[Endpoint], valid_master_endpoints: Set[Endpoint]) -> None:
+@pytest.mark.asyncio
+async def serial_test_mavproxy(valid_output_endpoints: Set[Endpoint], valid_master_endpoints: Set[Endpoint]) -> None:
     if not MAVProxy.is_ok():
         warnings.warn("Failed to test mavproxy service", UserWarning)
         return
@@ -176,12 +178,14 @@ def test_mavproxy(valid_output_endpoints: Set[Endpoint], valid_master_endpoints:
         EndpointType.TCPServer,
         EndpointType.TCPClient,
     ]
-    run_common_routing_tests(
+    await run_common_routing_tests(
         mavproxy, allowed_output_types, allowed_master_types, valid_output_endpoints, valid_master_endpoints
     )
 
 
-def test_mavlink_router(valid_output_endpoints: Set[Endpoint], valid_master_endpoints: Set[Endpoint]) -> None:
+async def serial_test_mavlink_router(
+    valid_output_endpoints: Set[Endpoint], valid_master_endpoints: Set[Endpoint]
+) -> None:
     if not MAVLinkRouter.is_ok():
         warnings.warn("Failed to test MAVLinkRouter service", UserWarning)
         return
@@ -198,14 +202,52 @@ def test_mavlink_router(valid_output_endpoints: Set[Endpoint], valid_master_endp
         EndpointType.TCPServer,
         EndpointType.TCPClient,
     ]
-    allowed_master_types = [EndpointType.UDPServer, EndpointType.Serial, EndpointType.TCPServer]
-    run_common_routing_tests(
+    allowed_master_types = [
+        EndpointType.UDPServer,
+        EndpointType.TCPServer,
+        EndpointType.TCPClient,
+        EndpointType.Serial,
+    ]
+    await run_common_routing_tests(
         mavlink_router, allowed_output_types, allowed_master_types, valid_output_endpoints, valid_master_endpoints
     )
 
 
+@pytest.mark.asyncio
+async def serial_test_mavp2p(valid_output_endpoints: Set[Endpoint], valid_master_endpoints: Set[Endpoint]) -> None:
+    if not MAVP2P.is_ok():
+        warnings.warn("Failed to test MAVP2P service", UserWarning)
+        return
+
+    assert AbstractRouter.get_interface("MAVP2P"), "Failed to find interface MAVP2P"
+
+    mavp2p = MAVP2P()
+    assert mavp2p.name() == "MAVP2P", "Name does not match."
+    assert re.search(r"\d+.\d+.\d+", str(mavp2p.version())) is not None, "Version does not follow pattern."
+
+    allowed_output_types = [
+        EndpointType.UDPServer,
+        EndpointType.UDPClient,
+        EndpointType.TCPServer,
+        EndpointType.TCPClient,
+        EndpointType.Serial,
+    ]
+    allowed_master_types = allowed_output_types
+    await run_common_routing_tests(
+        mavp2p, allowed_output_types, allowed_master_types, valid_output_endpoints, valid_master_endpoints
+    )
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.asyncio
+async def test_router(valid_output_endpoints: Set[Endpoint], valid_master_endpoints: Set[Endpoint]) -> None:
+    for router in [serial_test_mavlink_router, serial_test_mavp2p]:
+        await router(valid_output_endpoints, valid_master_endpoints)
+
+
 @pytest.mark.timeout(10)
-def run_common_routing_tests(
+@pytest.mark.asyncio
+async def run_common_routing_tests(
     router: AbstractRouter,
     allowed_output_types: List[EndpointType],
     allowed_master_types: List[EndpointType],
@@ -232,9 +274,9 @@ def run_common_routing_tests(
 
     for endpoint in unallowed_master_endpoints:
         with pytest.raises(ValueError):
-            router.start(endpoint)
+            await router.start(endpoint)
 
-    def test_endpoint_combinations(master_endpoints: Set[Endpoint], output_endpoints: List[Endpoint]) -> None:
+    async def test_endpoint_combinations(master_endpoints: Set[Endpoint], output_endpoints: List[Endpoint]) -> None:
         for master_endpoint in master_endpoints:
             router.clear_endpoints()
 
@@ -242,12 +284,12 @@ def run_common_routing_tests(
                 router.add_endpoint(output_endpoint)
             assert set(router.endpoints()) == set(output_endpoints), "Endpoint list does not match."
 
-            router.start(master_endpoint)
-            assert router.is_running(), f"{router.name()} is not running after start."
-            router.exit()
-            while router.is_running():
+            await router.start(master_endpoint)
+            assert await router.is_running(), f"{router.name()} is not running after start."
+            await router.exit()
+            while await router.is_running():
                 pass
-            assert not router.is_running(), f"{router.name()} is not stopping after exit."
+            assert not await router.is_running(), f"{router.name()} is not stopping after exit."
 
     types_order = {
         EndpointType.UDPServer: 0,
@@ -259,5 +301,5 @@ def run_common_routing_tests(
     sorted_endpoints = sorted(allowed_output_endpoints, key=lambda e: types_order[e.connection_type])  # type: ignore
 
     # Test endpoint combinationsin two orders: regular and reversed
-    test_endpoint_combinations(allowed_master_endpoints, sorted_endpoints)
-    test_endpoint_combinations(allowed_master_endpoints, sorted_endpoints[::-1])
+    await test_endpoint_combinations(allowed_master_endpoints, sorted_endpoints)
+    await test_endpoint_combinations(allowed_master_endpoints, sorted_endpoints[::-1])

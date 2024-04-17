@@ -112,12 +112,13 @@ class Beacon:
     def set_hostname(self, hostname: str) -> None:
         self.manager.settings.default.domain_names = [hostname]
         for interface in self.manager.settings.interfaces:
-            if interface.name.startswith("eth"):
-                interface.domain_names = [hostname, self.DEFAULT_HOSTNAME]  # let's keep our default just in case
-            elif interface.name.startswith("wlan"):
-                interface.domain_names = [f"{hostname}-wifi"]
-            elif interface.name.startswith("uap"):
-                interface.domain_names = [f"{hostname}-hostspot"]
+            match InterfaceType.guess_from_name(interface.name):
+                case InterfaceType.WIRED | InterfaceType.USB:
+                    interface.domain_names = [hostname, self.DEFAULT_HOSTNAME]  # let's keep our default just in case
+                case InterfaceType.WIFI:
+                    interface.domain_names = [f"{hostname}-wifi"]
+                case InterfaceType.HOTSPOT:
+                    interface.domain_names = [f"{hostname}-hotspot"]
         self.manager.save()
 
     def get_hostname(self) -> str:
@@ -209,7 +210,7 @@ class Beacon:
                     runner = None
                     try:
                         runner = AsyncRunner(IPVersion.V4Only, interface=ip, interface_name=interface_name)
-                        logger.info(f"Created runner for interface {interface.name}, broadcasting on {ip}")
+                        logger.info(f"Created runner for interface {interface.name}, broadcasting {domain} on {ip}")
                     except Exception as e:
                         logger.warning(f"Error creating runner for {interface.name}: {e}, skipping this interface")
                         continue

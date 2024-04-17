@@ -13,10 +13,11 @@ from commonwealth.utils.apis import (
     PrettyJSONResponse,
     StackedHTTPException,
 )
+from commonwealth.utils.decorators import single_threaded
 from commonwealth.utils.general import is_running_as_root
 from commonwealth.utils.logs import InterceptHandler, init_logger
-from fastapi import Body, FastAPI, File, UploadFile, status
-from fastapi.staticfiles import StaticFiles
+from fastapi import Body, FastAPI, File, HTTPException, UploadFile, status
+from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from uvicorn import Config, Server
@@ -71,6 +72,15 @@ def target_board(board_name: Optional[str]) -> FlightController:
     return autopilot.current_board
 
 
+def raise_lock(*raise_args: str, **kwargs: int) -> None:
+    """Raise a 423 HTTP Error status
+
+    Raises:
+        HTTPException: Exception that the operation is already in progress.
+    """
+    raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="Operation already in progress.")
+
+
 @app.get("/endpoints", response_model=List[Dict[str, Any]])
 @version(1, 0)
 def get_available_endpoints() -> Any:
@@ -79,20 +89,20 @@ def get_available_endpoints() -> Any:
 
 @app.post("/endpoints", status_code=status.HTTP_201_CREATED)
 @version(1, 0)
-def create_endpoints(endpoints: Set[Endpoint] = Body(...)) -> Any:
-    autopilot.add_new_endpoints(endpoints)
+async def create_endpoints(endpoints: Set[Endpoint] = Body(...)) -> Any:
+    await autopilot.add_new_endpoints(endpoints)
 
 
 @app.delete("/endpoints", status_code=status.HTTP_200_OK)
 @version(1, 0)
-def remove_endpoints(endpoints: Set[Endpoint] = Body(...)) -> Any:
-    autopilot.remove_endpoints(endpoints)
+async def remove_endpoints(endpoints: Set[Endpoint] = Body(...)) -> Any:
+    await autopilot.remove_endpoints(endpoints)
 
 
 @app.put("/endpoints", status_code=status.HTTP_200_OK)
 @version(1, 0)
-def update_endpoints(endpoints: Set[Endpoint] = Body(...)) -> Any:
-    autopilot.update_endpoints(endpoints)
+async def update_endpoints(endpoints: Set[Endpoint] = Body(...)) -> Any:
+    await autopilot.update_endpoints(endpoints)
 
 
 @app.put("/serials", status_code=status.HTTP_200_OK)
@@ -123,6 +133,12 @@ async def get_vehicle_type() -> Any:
     return await autopilot.vehicle_manager.get_vehicle_type()
 
 
+@app.post("/sitl_frame", summary="Set SITL Frame type.")
+@version(1, 0)
+async def set_sitl_frame(frame: SITLFrame) -> Any:
+    return autopilot.set_sitl_frame(frame)
+
+
 @app.get("/firmware_vehicle_type", response_model=str, summary="Get firmware vehicle type.")
 @version(1, 0)
 async def get_firmware_vehicle_type() -> Any:
@@ -143,6 +159,7 @@ def get_available_firmwares(vehicle: Vehicle, board_name: Optional[str] = None) 
 
 @app.post("/install_firmware_from_url", summary="Install firmware for given URL.")
 @version(1, 0)
+@single_threaded(callback=raise_lock)
 async def install_firmware_from_url(
     url: str,
     board_name: Optional[str] = None,
@@ -158,6 +175,7 @@ async def install_firmware_from_url(
 
 @app.post("/install_firmware_from_file", summary="Install firmware from user file.")
 @version(1, 0)
+@single_threaded(callback=raise_lock)
 async def install_firmware_from_file(
     binary: UploadFile = File(...),
     board_name: Optional[str] = None,
@@ -167,13 +185,16 @@ async def install_firmware_from_file(
         custom_firmware = Path.joinpath(autopilot.settings.firmware_folder, "custom_firmware")
         with open(custom_firmware, "wb") as buffer:
             shutil.copyfileobj(binary.file, buffer)
+        logger.debug("Going to kill ardupilot")
         await autopilot.kill_ardupilot()
+        logger.debug("Installing firmware from file")
         autopilot.install_firmware_from_file(custom_firmware, target_board(board_name), parameters)
         os.remove(custom_firmware)
     except InvalidFirmwareFile as error:
         raise StackedHTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, error=error) from error
     finally:
         binary.file.close()
+        logger.debug("Starting ardupilot again")
         await autopilot.start_ardupilot()
 
 
@@ -206,6 +227,26 @@ async def start() -> Any:
     logger.debug("Ardupilot successfully started.")
 
 
+@app.post("/preferred_router", summary="Set the preferred MAVLink router.")
+@version(1, 0)
+async def set_preferred_router(router: str) -> Any:
+    logger.debug("Setting preferred Router")
+    await autopilot.set_preferred_router(router)
+    logger.debug(f"Preferred Router successfully set to {router}")
+
+
+@app.get("/preferred_router", summary="Retrieve preferred router")
+@version(1, 0)
+def preferred_router() -> Any:
+    return autopilot.load_preferred_router()
+
+
+@app.get("/available_routers", summary="Retrieve preferred router")
+@version(1, 0)
+def available_routers() -> Any:
+    return autopilot.get_available_routers()
+
+
 @app.post("/stop", summary="Stop the autopilot.")
 @version(1, 0)
 async def stop() -> Any:
@@ -231,7 +272,18 @@ def available_boards() -> Any:
 
 
 app = VersionedFastAPI(app, version="1.0.0", prefix_format="/v{major}.{minor}", enable_latest=True)
-app.mount("/", StaticFiles(directory=str(FRONTEND_FOLDER), html=True))
+
+
+@app.get("/")
+async def root() -> HTMLResponse:
+    html_content = """
+    <html>
+        <head>
+            <title>ArduPilot Manager</title>
+        </head>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@
             :loading="updating_serial_ports"
             item-text="name"
             :item-value="(item) => item.by_path ? item.by_path : item.name"
+            :item-disabled="(item) => item.current_user !== null"
             dense
           >
             <template #item="{ item }">
@@ -36,6 +37,16 @@
                   <v-list-item-content dense>
                     <v-list-item-title md-1>
                       Device: {{ item.name }}
+                      <v-chip
+                        v-if="item.current_user"
+                        class="ma-2 pl-2 pr-2"
+                        color="red"
+                        pill
+                        x-small
+                        text-color="white"
+                      >
+                        In use by {{ item.current_user }}
+                      </v-chip>
                     </v-list-item-title>
                     <v-list-item-subtitle class="text-wrap">
                       Path: {{ item.by_path ? item.by_path : item.name }}
@@ -73,7 +84,30 @@
             label="Serial baudrate"
             :rules="[validate_required_field, is_baudrate]"
           />
-
+          <v-tabs
+            v-model="tab"
+            fixed-tabs
+          >
+            <v-tab @click="bridge.udp_listen_port = 15000">
+              Server Mode
+            </v-tab>
+            <v-tab @click="bridge.udp_listen_port = 0">
+              Client Mode
+            </v-tab>
+          </v-tabs>
+          <span v-if="mode === 'server'">
+            Server mode will bind to the given port at the BlueOS device.
+            This means it will receive data from the topside computer at port
+            <B>{{ bridge.udp_listen_port }}</B>, and will send data back
+            to the topside computer at the port where the data originated at the topside computer.
+          </span>
+          <span v-else-if="mode === 'client'">
+            Client mode will send data to the given IP address and port.
+            This means it will send data to the topside computer at IP
+            <B>{{ bridge.ip }}</B> and port <B>{{ bridge.udp_target_port }}</B>.
+            It will receive data back from the topside computer at
+            <b>{{ bridge.udp_listen_port ? `port ${bridge.udp_listen_port}` : 'an automatically assigned port' }}</b>.
+          </span>
           <v-text-field
             v-model="bridge.ip"
             :rules="[validate_required_field, is_ip_address]"
@@ -81,10 +115,20 @@
           />
 
           <v-text-field
-            v-model="bridge.udp_port"
+            v-model="bridge.udp_listen_port"
             :counter="50"
-            label="UDP port"
+            :label="`Vehicle/Server port ${bridge.udp_listen_port == 0 ? '(Automatic)' : '' }`"
+            :rules="[validate_required_field, is_socket_auto_port]"
+            type="number"
+          />
+
+          <v-text-field
+            v-if="mode === 'client'"
+            v-model="bridge.udp_target_port"
+            :counter="50"
+            :label="`Topside/Target port`"
             :rules="[validate_required_field, is_socket_port]"
+            type="number"
           />
         </v-form>
       </v-card-text>
@@ -115,8 +159,10 @@
 import { formatDistanceToNow } from 'date-fns'
 import Vue from 'vue'
 
+import * as AutopilotManager from '@/components/autopilot/AutopilotManagerUpdater'
 import DevicePathHelper from '@/components/common/DevicePathHelper.vue'
 import Notifier from '@/libs/notifier'
+import autopilot from '@/store/autopilot_manager'
 import bridget from '@/store/bridget'
 import system_information from '@/store/system-information'
 import { Baudrate } from '@/types/common'
@@ -127,7 +173,6 @@ import back_axios from '@/utils/api'
 import {
   isBaudrate,
   isFilepath,
-  isIntegerString,
   isIpAddress,
   isNotEmpty,
   isSocketPort,
@@ -153,11 +198,13 @@ export default Vue.extend({
 
   data() {
     return {
+      tab: 0,
       bridge: {
         serial_path: '',
         baud: null as (number | null),
         ip: '0.0.0.0',
-        udp_port: '15000',
+        udp_target_port: 15000,
+        udp_listen_port: 15000,
       },
     }
   },
@@ -170,19 +217,30 @@ export default Vue.extend({
         (baud) => ({ value: parseInt(baud[1], 10), text: baud[1] }),
       )
     },
+    mode(): string {
+      switch (this.tab) {
+        case 0:
+          return 'server'
+        case 1:
+          return 'client'
+        default:
+          return 'server'
+      }
+    },
+
     available_serial_ports(): SerialPortInfo[] {
       const system_serial_ports: SerialPortInfo[] | undefined = system_information.serial?.ports
-      if (system_serial_ports === undefined || system_serial_ports.isEmpty()) {
-        return bridget.available_serial_ports.map((port) => ({
-          name: port,
-          by_path: port,
-          by_path_created_ms_ago: null,
-          udev_properties: null,
-        }))
+      if (!system_serial_ports) {
+        return []
       }
-
       return system_serial_ports
         .filter((serial_info) => bridget.available_serial_ports.includes(serial_info.name))
+        .map((serial_info) => ({
+          ...serial_info,
+          current_user: autopilot.autopilot_serials.some(
+            (serial) => serial.endpoint === serial_info.name,
+          ) ? 'autopilot' : null,
+        }))
     },
     bridge_mode(): string {
       switch (this.bridge.ip) {
@@ -204,6 +262,9 @@ export default Vue.extend({
       return this.updating_serial_ports ? 'Fetching available serial ports...' : 'Serial port'
     },
   },
+  async mounted() {
+    await AutopilotManager.fetchAutopilotSerialConfiguration()
+  },
   methods: {
     create_time_ago(ms_time: number): string {
       const time_now = new Date().valueOf()
@@ -222,11 +283,15 @@ export default Vue.extend({
       return isFilepath(input) ? true : 'Invalid path.'
     },
     is_socket_port(input: string): (true | string) {
-      if (!isIntegerString(input)) {
-        return 'Please use an integer value.'
-      }
       const int_input = parseInt(input, 10)
       return isSocketPort(int_input) ? true : 'Invalid port.'
+    },
+    is_socket_auto_port(input: string): (true | string) {
+      const int_input = parseInt(input, 10)
+      if (this.mode === 'client' && int_input === 0) {
+        return true
+      }
+      return this.is_socket_port(input)
     },
     is_baudrate(input: number): (true | string) {
       return isBaudrate(input) ? true : 'Invalid baudrate.'
@@ -239,6 +304,8 @@ export default Vue.extend({
 
       bridget.setUpdatingBridges(true)
       this.showDialog(false)
+      this.bridge.udp_listen_port = parseInt(String(this.bridge.udp_listen_port), 10)
+      this.bridge.udp_target_port = parseInt(String(this.bridge.udp_target_port), 10)
 
       await back_axios({
         method: 'post',

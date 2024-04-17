@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
 # Set desired version to be installed
-VERSION="${VERSION:-coratiaos}"
-GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-sakthivelj/coratia-os}
+VERSION="${VERSION:-master}"
+GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-bluerobotics/blueos-docker}
 REMOTE="${REMOTE:-https://raw.githubusercontent.com/${GITHUB_REPOSITORY}}"
 ROOT="$REMOTE/$VERSION"
-echo $VERSION
 alias curl="curl --retry 6 --max-time 15 --retry-all-errors"
 
 # Additional options
@@ -90,8 +89,11 @@ else
     echo "Skipping hardware configuration"
 fi
 
-echo "Checking for blocked wifi and bluetooth."
-rfkill unblock all
+# There are systems where rfkill does not exist, like SBC without wifi/BT
+command -v rfkill && (
+    echo "Checking for blocked wifi and bluetooth."
+    rfkill unblock all
+)
 
 # Get the number of free blocks and the block size in bytes, and calculate the value in GB
 echo "Checking for available space."
@@ -100,6 +102,14 @@ AVAILABLE_SPACE_MB=$(($(stat -f / --format="%a*%S/1024**2")))
 NECESSARY_SPACE_MB=1024
 (( AVAILABLE_SPACE_MB < NECESSARY_SPACE_MB )) && (
     echo "Not enough free space to install blueos, at least ${NECESSARY_SPACE_MB}MB required"
+    exit 1
+)
+
+# Check iptables
+iptables -v 2>&1 | grep -q "Failed to initialize nft" && (
+    echo "iptables command failed. Be sure to fix it before running again."
+    echo "Note: If you are running ubuntu or debian, maybe the following command will fix the issue:"
+    echo "$ sudo update-alternatives --set iptables /usr/sbin/iptables-legacy"
     exit 1
 )
 
@@ -139,7 +149,7 @@ then
     alias docker=dind
 fi
 
-sudo usermod -aG docker pi
+sudo usermod -aG docker $USER
 
 # Stop and remove all docker if NO_CLEAN is not defined
 test $NO_CLEAN || (
@@ -155,16 +165,21 @@ test $NO_CLEAN || (
 )
 
 # Start installing necessary files and system configuration
-echo "Going to install coratiaos-docker version ${VERSION}."
+echo "Going to install blueos-docker version ${VERSION}."
 
 echo "Downloading and installing udev rules."
 curl -fsSL $ROOT/install/udev/100.autopilot.rules -o /etc/udev/rules.d/100.autopilot.rules
 
-echo "Disabling automatic Link-local configuration in dhcpd.conf."
-# delete line if it already exists
-sed -i '/noipv4ll/d' /etc/dhcpcd.conf
-# add noipv4ll
-sed -i '$ a noipv4ll' /etc/dhcpcd.conf
+if [ -f /etc/dhcpcd.conf ]
+then
+    echo "Disabling automatic Link-local configuration in dhcpd.conf."
+    # delete line if it already exists
+    sed -i '/noipv4ll/d' /etc/dhcpcd.conf
+    # add noipv4ll
+    sed -i '$ a noipv4ll' /etc/dhcpcd.conf
+else
+    echo "Not modifying /etc/dhcpcd.conf - file does not exist"
+fi
 
 # Do necessary changes if running in a Raspiberry
 command -v raspi-config && (
@@ -181,40 +196,50 @@ command -v raspi-config && (
 )
 
 echo "Downloading bootstrap"
-BLUEOS_BOOTSTRAP="coratia/coratiaos-bootstrap:$VERSION" # Use current version
-BLUEOS_CORE="coratia/coratiaos-core:$VERSION" # We don't have a stable tag yet
-BLUEOS_FACTORY="coratia/coratiaos-core:factory" # used for "factory reset"
+BLUEOS_BOOTSTRAP="bluerobotics/blueos-bootstrap:$VERSION" # Use current version
+BLUEOS_CORE="bluerobotics/blueos-core:$VERSION" # We don't have a stable tag yet
+BLUEOS_FACTORY="bluerobotics/blueos-core:factory" # used for "factory reset"
 
 docker pull $BLUEOS_BOOTSTRAP
 docker pull $BLUEOS_CORE
 # Use current release version for factory fallback
 docker image tag $BLUEOS_CORE $BLUEOS_FACTORY
 
-# Create coratiaos-bootstrap container
+# Create blueos-bootstrap container
 docker create \
     -t \
     --restart unless-stopped \
-    --name coratiaos-bootstrap \
+    --name blueos-bootstrap \
     --net=host \
     -v $HOME/.config/blueos/bootstrap:/root/.config/bootstrap \
     -v /var/run/docker.sock:/var/run/docker.sock \
+    -v /var/logs/blueos:/var/logs/blueos \
     -e BLUEOS_CONFIG_PATH=$HOME/.config/blueos \
     $BLUEOS_BOOTSTRAP
 
 # add docker entry to rc.local
-sed -i "\%^exit 0%idocker start coratiaos-bootstrap" /etc/rc.local || echo "sed failed to add expand_fs entry in /etc/rc.local"
+sed -i "\%^exit 0%idocker start blueos-bootstrap" /etc/rc.local || echo "Failed to add docker start on rc.local, BlueOS will not start on boot!"
 
 # Configure network settings
 ## This should be after everything, otherwise network problems can happen
 echo "Starting network configuration."
 curl -fsSL $ROOT/install/network/avahi.sh | bash
 
-sleep 5
-echo "Automatically Install Extension"
-docker run -d --net=host -v /root/.config/blueos:/root/.config --name=BlueOS-Water-Linked-DVL --restart=unless-stopped williangalvani/blueos-dvl:latest
+# Following https://systemd.io/BUILDING_IMAGES/
+echo "Restarting machine-id."
+rm -rf /etc/machine-id /var/lib/dbus/machine-id
+# The file needs to exist for docker to bind
+## if /etc/machine-id does not exist, this is a first boot. During early boot, systemd will write "uninitialized\n"
+## to this file and overmount a temporary file which contains the actual machine ID.
+## Later (after first-boot-complete.target has been reached), the real machine ID will be written to disk.
+## If /etc/machine-id contains the string "uninitialized", a boot is also considered the first boot. The same mechanism as above applies.
+echo "uninitialized" > /etc/machine-id
+echo "Restarting random-seeds."
+rm -rf /var/lib/systemd/random-seed /loader/random-seed
 
 echo "Installation finished successfully."
 echo "You can access after the reboot:"
-echo "- The computer webpage: http://192.168.2.2"
+echo "- The computer webpage: http://blueos-avahi.local"
+echo "- The ssh client: $USER@blueos-avahi.local"
 echo "System will reboot in 10 seconds."
 sleep 10 && reboot

@@ -19,13 +19,14 @@ class Bootstrapper:
     DOCKER_CONFIG_PATH = pathlib.Path("/root/.config")
     DOCKER_CONFIG_FILE_PATH = DOCKER_CONFIG_PATH.joinpath("bootstrap/startup.json")
     HOST_CONFIG_PATH = os.environ.get("BLUEOS_CONFIG_PATH", "/tmp/blueos/.config")
-    CORE_CONTAINER_NAME = "coratiaos-core"
+    CORE_CONTAINER_NAME = "blueos-core"
+    BOOTSTRAP_CONTAINER_NAME = "blueos-bootstrap"
     SETTINGS_NAME_CORE = "core"
-    core_last_response_time = time.time()
+    core_last_response_time = time.monotonic()
 
     def __init__(self, client: docker.DockerClient, low_level_api: docker.APIClient = None) -> None:
         self.client: docker.DockerClient = client
-        self.core_last_response_time = time.time()
+        self.core_last_response_time = time.monotonic()
         if low_level_api is None:
             self.low_level_api = docker.APIClient(base_url="unix://var/run/docker.sock")
         else:
@@ -80,6 +81,16 @@ class Bootstrapper:
             "mode": "rw",
         }
         return config
+
+    def bootstrap_version(self) -> str:
+        try:
+            return next(
+                str(container.image)
+                for container in self.client.containers.list()
+                if container.name == self.BOOTSTRAP_CONTAINER_NAME
+            )
+        except Exception:
+            return f"Bootstrap does not follow standard name: {self.BOOTSTRAP_CONTAINER_NAME}"
 
     def pull(self, component_name: str) -> None:
         """Pulls an image
@@ -183,7 +194,7 @@ class Bootstrapper:
         try:
             self.client.containers.run(
                 docker_name,
-                name=f"coratiaos-{component_name}",
+                name=f"blueos-{component_name}",
                 volumes=binds,
                 privileged=privileged,
                 network=network,
@@ -198,7 +209,7 @@ class Bootstrapper:
         return True
 
     def is_running(self, component: str) -> bool:
-        """Checks if the container for a given component of coratiaos is running
+        """Checks if the container for a given component of blueos is running
 
         Args:
             component (str): component name ("core", "bootstrap", "ttyd", ...)
@@ -219,13 +230,15 @@ class Bootstrapper:
             if Bootstrapper.SETTINGS_NAME_CORE in response.json()["repository"]:
                 return True
         except Exception as e:
-            logger.warning(f"Could not talk to version chooser for {time.time() - self.core_last_response_time}: {e}")
+            logger.warning(
+                f"Could not talk to version chooser for {time.monotonic() - self.core_last_response_time}: {e}"
+            )
         return False
 
     def remove(self, container: str) -> None:
         """Deletes the chosen container if it exists (needed for updating the running image)"""
         try:
-            old_container = self.client.containers.get(f"coratiaos-{container}")
+            old_container = self.client.containers.get(f"blueos-{container}")
             old_container.stop()
             old_container.remove()
         except docker.errors.NotFound:
@@ -234,7 +247,7 @@ class Bootstrapper:
 
     def run(self) -> None:
         """Runs the bootstrapper"""
-        logger.info("Starting main loop")
+        logger.info(f"Starting bootstrap {self.bootstrap_version()}")
         while True:
             time.sleep(5)
             for image in self.read_config_file():
@@ -250,15 +263,15 @@ class Bootstrapper:
                     continue
 
                 if self.is_version_chooser_online():
-                    self.core_last_response_time = time.time()
+                    self.core_last_response_time = time.monotonic()
                     continue
 
                 # Check if version chooser failed start before timeout
-                if time.time() - self.core_last_response_time < 300:
+                if time.monotonic() - self.core_last_response_time < 300:
                     continue
 
                 # Version choose failed, time to restarted core
-                self.core_last_response_time = time.time()
+                self.core_last_response_time = time.monotonic()
                 logger.warning("Core has not responded in 5 minutes, resetting to factory...")
                 self.overwrite_config_file_with_defaults()
                 try:

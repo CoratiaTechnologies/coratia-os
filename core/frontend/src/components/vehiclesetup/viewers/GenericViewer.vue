@@ -91,11 +91,15 @@ import { Dictionary, Indexed, Keyed } from '@/types/common'
 import { PingType } from '@/types/ping'
 import { sleep } from '@/utils/helper_functions'
 
-const models = require.context(
-  '/src/assets/vehicles/models/',
-  true,
-  /\.(glb|json)$/,
-)
+const models: Record<string, string> = import.meta.glob('/src/assets/vehicles/models/**', { eager: true })
+
+function get_model(vehicle_name: string, frame_name: string): undefined | string {
+  const release_path = `/src/assets/vehicles/models/${vehicle_name}/${frame_name}.glb`
+  if (models[release_path]) {
+    return release_path
+  }
+  return undefined
+}
 
 export default Vue.extend({
   name: 'GenericViewer',
@@ -177,10 +181,7 @@ export default Vue.extend({
       return result ? `${result}` : undefined
     },
     model_path(): string | undefined {
-      if (this.frame_name !== undefined) {
-        return models(`./${this.vehicle_folder}/${this.frame_name}.glb`)
-      }
-      return undefined
+      return get_model(this.vehicle_folder, this.frame_name)
     },
     filtered_annotations(): (HotspotConfiguration & Indexed & Keyed)[] {
       if (this.noannotations) {
@@ -214,11 +215,11 @@ export default Vue.extend({
     },
     lights1_are_present() {
       const servo_params = autopilot_data.parameterRegex('^SERVO(\\d+)_FUNCTION$')
-      return servo_params.some((parameter) => parameter.value === SUB_SERVO_FUNCTION.RCIN8)
+      return servo_params.some((parameter) => parameter.value === SUB_SERVO_FUNCTION.RCIN9)
     },
     lights2_are_present() {
       const servo_params = autopilot_data.parameterRegex('^SERVO(\\d+)_FUNCTION$')
-      return servo_params.some((parameter) => parameter.value === SUB_SERVO_FUNCTION.RCIN9)
+      return servo_params.some((parameter) => parameter.value === SUB_SERVO_FUNCTION.RCIN10)
     },
     gripper_is_present() {
       const mavlink = autopilot_data.parameter('GRIP_ENABLE')?.value === 1
@@ -348,8 +349,8 @@ export default Vue.extend({
       const file = new File([await cropped_image.toBlob(mimeType)], 'viewer.png', { type: mimeType })
       saveAs(file)
     },
-    async reloadAnnotations() {
-      const json = await models(`./${this.vehicle_folder}/${this.frame_name}.json`)
+    reloadAnnotations() {
+      const json = models[`/src/assets/vehicles/models/${this.vehicle_folder}/${this.frame_name}.json`]
       if (json) {
         this.annotations = json.annotations ?? {}
       }

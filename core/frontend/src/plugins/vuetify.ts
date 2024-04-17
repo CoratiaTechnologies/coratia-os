@@ -1,11 +1,11 @@
 import '@mdi/font/css/materialdesignicons.css'
 
-import simple_icons from 'simple-icons'
+import { siDiscourse } from 'simple-icons';
 import Vue from 'vue'
 import Vuetify from 'vuetify/lib/framework'
 
-import * as BR_COLORS from '@/assets/colors/blue_robotics'
-import * as DEFAULT_COLORS from '@/assets/colors/default'
+import * as BR_COLORS from '@/style/colors/blue_robotics'
+import * as DEFAULT_COLORS from '@/style/colors/default'
 
 Vue.use(Vuetify)
 
@@ -58,16 +58,21 @@ const vuetify = new Vuetify({
   },
 })
 
-// Add simple-icons on vuetify
-// Use `$si-${name}` to access it
-// E.g: <v-icon> $si-discourse </v-icon>
-const icons = Object.entries(simple_icons).map(([key]) => ({
-  name: key,
-  simple_icon: simple_icons.Get(key),
-}))
+// Add any other icons here
+// this usage is required for tree-shaking to work,
+// otherwise all icons will be included in the bundle
+const icons = [
+  siDiscourse
+].map((icon) => {
+  return {
+    'name': icon.title,
+    'slug': icon.slug,
+    'path': icon.path
+  }
+})
 
 for (const icon of icons) {
-  vuetify.framework.icons.values[`si-${icon.simple_icon.slug}`] = `${icon.simple_icon.path}`
+  vuetify.framework.icons.values[`si-${icon.slug}`] = `${icon.path}`
 }
 
 export default vuetify

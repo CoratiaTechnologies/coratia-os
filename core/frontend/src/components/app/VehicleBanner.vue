@@ -4,8 +4,8 @@
       <image-picker
         size="35px"
         directory="/userdata/images/vehicle"
-        readonly-directory="/vehicles/images"
-        :default-image="require('@/assets/vehicles/images/bluerov2.png')"
+        :readonly-files="['/assets/vehicles/images/bluerov2.png', '/assets/vehicles/images/bb120.png']"
+        :default-image="require('@/assets/vehicles/images/unknown.svg')"
         :image="vehicle_image"
         @image-selected="save_vehicle_image"
       />
@@ -24,7 +24,7 @@
           dark
           x-small
           @click="openDialog"
-        > 
+        >
           <v-icon>
             mdi-pencil
           </v-icon>
@@ -128,7 +128,7 @@ export default Vue.extend({
     },
     update_title() {
       const sysid = this.system_id !== 1 ? `(${this.system_id}) ` : ''
-      document.title = `${sysid}${this.vehicle_name} - CoratiaOS`
+      document.title = `${sysid}${this.vehicle_name} - BlueOS`
     },
     save() {
       this.save_name()

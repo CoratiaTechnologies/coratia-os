@@ -3,11 +3,11 @@
 from setuptools import setup
 
 setup(
-    name="coratiaos_bootstrap",
+    name="blueos_bootstrap",
     version="0.0.1",
-    description="Coratia Technologies Ardusub CoratiaOS Docker System Bootstrap",
+    description="Blue Robotics Ardusub BlueOS Docker System Bootstrap",
     license="MIT",
-    # install_requires=["docker == 5.0.0", "six == 1.15.0", "requests == 2.26.0", "loguru == 0.5.3"],
+    py_modules=[],
     install_requires=[
         "docker==5.0.0",
         "loguru==0.5.3",

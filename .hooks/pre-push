@@ -2,6 +2,52 @@
 
 set -e
 
+# Check if pipenv is installed
+command -v pipenv >/dev/null 2>&1 || {
+    echo >&2 "pipenv is not installed. Aborting. Please install it and try again."
+    exit 1
+}
+
+# Check if shellcheck is installed
+command -v shellcheck >/dev/null 2>&1 || {
+    echo >&2 "shellcheck is not installed. Aborting. Please install it and try again."
+    exit 1
+}
+
+# Check if parallel is installed
+command -v parallel >/dev/null 2>&1 || {
+    echo >&2 "parallel is not installed. Aborting. Please install it and try again."
+    exit 1
+}
+
+pipenv install poetry
+pipenv run poetry install
+# download some required files if they are not present
+echo "installing mavlink-router"
+pipenv run ./core/tools/mavlink_router/bootstrap.sh
+echo "installing mavp2p"
+pipenv run ./core/tools/mavp2p/bootstrap.sh
+echo "installing ardupilot_tools"
+pipenv run ./core/tools/ardupilot_tools/bootstrap.sh
+
+isort_extra_args="--check-only --diff"
+black_extra_args="--check --diff"
+fixing="false"
+
+for arg in "$@"; do
+  case $arg in
+    --fix)
+      isort_extra_args=""
+      black_extra_args=""
+      fixing="true"
+      ;;
+    *)
+      echo "Unknown argument: $arg"
+      exit 1
+      ;;
+  esac
+done
+
 echo "Running pre push hook!"
 repository_path=$(git rev-parse --show-toplevel)
 tag_name=$(git tag --points-at=HEAD | head -n 1)
@@ -26,29 +72,32 @@ echo "Running shellcheck..."
 #SC2046: Allow word splitting
 #SC2048: Allow word splitting
 #SC2086: Allow word splitting
-git ls-files '*.sh' | xargs --max-lines=1 shellcheck --exclude=SC2005,SC2015,SC2046,SC2048,SC2086
+git ls-files '*.sh' | xargs -L 1 shellcheck --exclude=SC2005,SC2015,SC2046,SC2048,SC2086
 
 echo "Running isort.."
 # Run isort for each python project
-dirname $(git ls-files "$repository_path/*/setup.py") | xargs -I {} isort --src-path="{}" --check-only --diff "{}"
+dirname $(git ls-files "$repository_path/*/setup.py") | xargs -I {} pipenv run isort --src-path="{}" ${isort_extra_args} "{}"
 
 # This will only get the python files track by git, not including submodules
 python_files=$(git ls-files '*.py')
 
 echo "Running black.."
-black --check --diff $python_files
+pipenv run black ${black_extra_args} $python_files
+
+# do not run the rest of the script if running for fixing
+[ "$fixing" = true ] && exit 0
 
 # Faster than pylint to check for issues
 echo "Running ruff.."
-ruff $python_files
+pipenv run ruff $python_files
 
 echo "Running pylint.."
-pylint $python_files
-
-echo "Running pytest.."
-pytest --cov="$repository_path" --cov-report html
+pipenv run pylint $python_files
 
 echo "Running mypy.."
-git ls-files '*.py' | xargs --max-lines=1 mypy --no-incremental
+git ls-files '*setup.py' | parallel 'pipenv run mypy $(dirname {}) --cache-dir $(dirname {})'
+
+echo "Running pytest.."
+pipenv run pytest -n 10 --cov="$repository_path" --cov-report html
 
 exit 0

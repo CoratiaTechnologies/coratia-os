@@ -98,12 +98,11 @@
 <script lang="ts">
 import Vue from 'vue'
 
+import { OneMoreTime } from '@/one-more-time'
 import nmea_injector from '@/store/nmea-injector'
 import { NMEASocket } from '@/types/nmea-injector'
-import { callPeriodically, stopCallingPeriodically } from '@/utils/helper_functions'
 
 import SpinningLogo from '../common/SpinningLogo.vue'
-import fetchAvailableNMEASockets from './NMEAInjectorUpdater'
 import NMEASocketCard from './NMEASocketCard.vue'
 import CreationDialog from './NMEASocketCreationDialog.vue'
 
@@ -117,11 +116,13 @@ export default Vue.extend({
   data() {
     return {
       show_creation_dialog: false,
+      updating_nmea_sockets_debounced: false,
+      fetch_nmea_sockets_task: new OneMoreTime({ delay: 5000, disposeWith: this }),
     }
   },
   computed: {
     updating_nmea_sockets(): boolean {
-      return nmea_injector.updating_nmea_sockets
+      return nmea_injector.updating_nmea_sockets && this.updating_nmea_sockets_debounced
     },
     available_nmea_sockets(): NMEASocket[] {
       return nmea_injector.available_nmea_sockets
@@ -131,12 +132,18 @@ export default Vue.extend({
     },
   },
   mounted() {
-    callPeriodically(fetchAvailableNMEASockets, 5000)
-  },
-  beforeDestroy() {
-    stopCallingPeriodically(fetchAvailableNMEASockets)
+    this.fetch_nmea_sockets_task.setAction(() => this.fetchAvailableNMEASockets())
   },
   methods: {
+    async fetchAvailableNMEASockets(): Promise<void> {
+      this.updating_nmea_sockets_debounced = false
+
+      await nmea_injector.fetchAvailableNMEASockets()
+
+      setTimeout(() => {
+        this.updating_nmea_sockets_debounced = true
+      }, 300)
+    },
     openCreationDialog(): void {
       this.show_creation_dialog = true
     },

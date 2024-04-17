@@ -25,7 +25,7 @@ class VersionChooser:
     def __init__(self, client: aiodocker.Docker):
         self.client = client
         self.cleanup()
-        self.bootstrap_name = "coratiaos-bootstrap"
+        self.bootstrap_name = "blueos-bootstrap"
 
     @staticmethod
     def cleanup() -> None:
@@ -117,7 +117,7 @@ class VersionChooser:
 
         Args:
             request (web.Request): http request from aiohttp
-            repository (str): name of the image, such as coratia/coratiaos-core
+            repository (str): name of the image, such as bluerobotics/blueos-core
             tag (str): image tag
 
         Returns:
@@ -177,6 +177,17 @@ class VersionChooser:
         except Exception as error:
             logger.critical(f"Warning: {type(error)}: {error}")
 
+        new_image_name = f"bluerobotics/blueos-bootstrap:{tag}"
+        try:
+            await self.client.images.inspect(new_image_name)
+        except Exception:
+            error_msg = (
+                f"Trying to update bootstrap to {new_image_name} but this image doesn't exist locally. "
+                + "Please pull this image before trying to update the bootstrap."
+            )
+            logger.critical(error_msg)
+            return web.Response(status=400, text=error_msg)
+
         backup_name = "bootstrap-backup"
         try:
             backup = None
@@ -191,13 +202,13 @@ class VersionChooser:
             logger.info(f"Setting current {await self.get_bootstrap_version()} as {backup_name}")
             await bootstrap.rename(backup_name)
             logger.info(f"Stop {self.bootstrap_name}")
-            await bootstrap.stop()
+            await bootstrap.kill()
             result = await bootstrap.wait()  # type: ignore
             logger.info(f"Response after waiting for {self.bootstrap_name} to be stopped: {result}")
 
         HOME = "/root"
         bootstrap_config = {
-            "Image": f"coratia/coratiaos-bootstrap:{tag}",
+            "Image": new_image_name,
             "HostConfig": {
                 "RestartPolicy": {"Name": "unless-stopped"},
                 "NetworkMode": "host",
@@ -245,7 +256,7 @@ class VersionChooser:
                 startup_file.truncate()
 
                 logger.info("Stopping core...")
-                core = await self.client.containers.get("coratiaos-core")  # type: ignore
+                core = await self.client.containers.get("blueos-core")  # type: ignore
                 if core:
                     await core.kill()
                     result = await core.wait()  # type: ignore
@@ -287,7 +298,7 @@ class VersionChooser:
         # actually attempt to delete it
         logger.info(f"Deleting image {image}:{tag}...")
         try:
-            await self.client.images.delete(full_name, force=False, noprune=False)
+            await self.client.images.delete(full_name, force=True, noprune=False)
             logger.info("Image deleted successfully")
             return web.Response(status=200)
         except Exception as e:
@@ -298,7 +309,7 @@ class VersionChooser:
         for image in await self.client.images.list():
             if not image["RepoTags"]:
                 continue
-            if not any("/coratiaos-core:" in tag for tag in image["RepoTags"]):
+            if not any("/blueos-core:" in tag for tag in image["RepoTags"]):
                 continue
             for image_tag in image["RepoTags"]:
                 image_repository, tag = image_tag.split(":")
@@ -336,7 +347,7 @@ class VersionChooser:
         """Returns versions available locally and in the remote
 
         Args:
-            repository (str): repository name (such as coratia/coratiaos-core)
+            repository (str): repository name (such as bluerobotics/blueos-core)
             tag (str): tag (such as "master" or "latest")
 
         Returns:
@@ -353,6 +364,6 @@ class VersionChooser:
             web.Response: always 200
         """
         logger.info("Stopping core...")
-        core = await self.client.containers.get("coratiaos-core")  # type: ignore
+        core = await self.client.containers.get("blueos-core")  # type: ignore
         await core.kill()
         return web.Response(status=200, text="Restarting...")

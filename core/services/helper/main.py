@@ -4,13 +4,11 @@ import asyncio
 import http.client
 import json
 import logging
-import os
 import re
 import socket
 from concurrent import futures
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 from urllib.parse import urlparse
 
@@ -19,12 +17,13 @@ from bs4 import BeautifulSoup
 from commonwealth.utils.apis import GenericErrorHandlingRoute, PrettyJSONResponse
 from commonwealth.utils.decorators import temporary_cache
 from commonwealth.utils.general import (
+    blueos_version,
+    limit_ram_usage,
     local_hardware_identifier,
     local_unique_identifier,
 )
 from commonwealth.utils.logs import InterceptHandler, init_logger
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from pydantic import BaseModel
@@ -34,10 +33,9 @@ from uvicorn import Config, Server
 from nginx_parser import parse_nginx_file
 
 SERVICE_NAME = "helper"
-BLUEOS_VERSION = os.environ.get("GIT_DESCRIBE_TAGS", "null")
-HTML_FOLDER = Path.joinpath(Path(__file__).parent.absolute(), "html")
 SPEED_TEST: Optional[Speedtest] = None
 
+limit_ram_usage(200)
 
 logging.basicConfig(handlers=[InterceptHandler()], level=logging.DEBUG)
 try:
@@ -70,7 +68,7 @@ class Website(Enum):
         "path": "/ping/?"
         + f"&blueos_id={local_unique_identifier()}"
         + f"&hardware_id={local_hardware_identifier()}"
-        + f"&version={BLUEOS_VERSION}",
+        + f"&version={blueos_version()}",
         "port": 443,
     }
     Cloudflare = {
@@ -100,6 +98,8 @@ class ServiceMetadata(BaseModel):
     webpage: str
     route: Optional[str]
     new_page: Optional[bool]
+    extra_query: Optional[str]
+    avoid_iframes: Optional[bool]
     api: str
     sanitized_name: Optional[str]
 
@@ -205,7 +205,7 @@ class Helper:
         2770,  # NGINX
     }
     KNOWN_SERVICES: Set[ServiceInfo] = set()
-    # Whether we should or not keep a CoratiaOS system service when it's TCP port is not alive.
+    # Whether we should or not keep a BlueOS system service when it's TCP port is not alive.
     # If 'False', when a service dies, it is not returned as an available service
     KEEP_BLUEOS_SERVICES_ALIVE = False
     # Wether or not we should rescan periodically all services
@@ -230,8 +230,13 @@ class Helper:
         conn: Optional[Union[http.client.HTTPConnection, http.client.HTTPSConnection]] = None
         request_response = SimpleHttpResponse(status=None, decoded_data=None, as_json=None, timeout=False, error=None)
 
+        # Based on requests library
+        headers = {
+            "User-Agent": "python",
+            "Accept-Encoding": "gzip, deflate",
+            "Accept": "*/*",
+        }
         # Prepare the header for json request
-        headers = {}
         if try_json:
             headers["Accept"] = "application/json"
 
@@ -448,7 +453,7 @@ class Helper:
 
 fast_api_app = FastAPI(
     title="Helper API",
-    description="Everybody's helper to find web services that are running in CoratiaOS.",
+    description="Everybody's helper to find web services that are running in BlueOS.",
     default_response_class=PrettyJSONResponse,
 )
 fast_api_app.router.route_class = GenericErrorHandlingRoute
@@ -478,7 +483,7 @@ def check_internet_access() -> Any:
 @fast_api_app.get(
     "/internet_best_server",
     response_model=SpeedTestResult,
-    summary="Check internet best server for test from CoratiaOS.",
+    summary="Check internet best server for test from BlueOS.",
 )
 @version(1, 0)
 async def internet_best_server() -> Any:
@@ -493,7 +498,7 @@ async def internet_best_server() -> Any:
 @fast_api_app.get(
     "/internet_download_speed",
     response_model=SpeedTestResult,
-    summary="Check internet download speed test from CoratiaOS.",
+    summary="Check internet download speed test from BlueOS.",
 )
 @version(1, 0)
 async def internet_download_speed() -> Any:
@@ -506,13 +511,13 @@ async def internet_download_speed() -> Any:
 @fast_api_app.get(
     "/internet_upload_speed",
     response_model=SpeedTestResult,
-    summary="Check internet upload speed test from CoratiaOS.",
+    summary="Check internet upload speed test from BlueOS.",
 )
 @version(1, 0)
 async def internet_upload_speed() -> Any:
     if not SPEED_TEST:
         raise RuntimeError("SPEED_TEST not initialized, initialize server search.")
-    SPEED_TEST.upload()
+    SPEED_TEST.upload(pre_allocate=False)
     return SPEED_TEST.results.dict()
 
 
@@ -549,8 +554,6 @@ app = VersionedFastAPI(
     prefix_format="/v{major}.{minor}",
     enable_latest=True,
 )
-
-app.mount("/", StaticFiles(directory=str(HTML_FOLDER), html=True))
 
 port_to_service_map: Dict[int, str] = parse_nginx_file("/home/pi/tools/nginx/nginx.conf")
 

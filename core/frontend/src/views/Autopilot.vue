@@ -7,6 +7,9 @@
   >
     <v-card>
       <v-card-title>Autopilot</v-card-title>
+
+      <img height="80" :src="banner" />
+
       <v-card-text>
         <span v-if="board_undefined">No board running</span>
         <div v-else>
@@ -98,12 +101,17 @@
 <script lang="ts">
 import Vue from 'vue'
 
+import ArduPilotBanner from '@/assets/img/banners/ArduPilot.svg'
+import OpenPilotBanner from '@/assets/img/banners/OpenPilot.svg'
+import PX4Banner from '@/assets/img/banners/PX4.svg'
+import * as AutopilotManager from '@/components/autopilot/AutopilotManagerUpdater'
 import {
   fetchAvailableBoards, fetchCurrentBoard, fetchFirmwareInfo, fetchVehicleType,
 } from '@/components/autopilot/AutopilotManagerUpdater'
 import AutopilotSerialConfiguration from '@/components/autopilot/AutopilotSerialConfiguration.vue'
 import BoardChangeDialog from '@/components/autopilot/BoardChangeDialog.vue'
 import FirmwareManager from '@/components/autopilot/FirmwareManager.vue'
+import { MavAutopilot } from '@/libs/MAVLink2Rest/mavlink2rest-ts/messages/mavlink2rest-enum'
 import Notifier from '@/libs/notifier'
 import settings from '@/libs/settings'
 import autopilot_data from '@/store/autopilot'
@@ -153,6 +161,18 @@ export default Vue.extend({
       }
 
       return record
+    },
+    banner(): string {
+      switch (autopilot_data.autopilot_type) {
+        case MavAutopilot.MAV_AUTOPILOT_ARDUPILOTMEGA:
+          return ArduPilotBanner
+        case MavAutopilot.MAV_AUTOPILOT_OPENPILOT:
+          return OpenPilotBanner
+        case MavAutopilot.MAV_AUTOPILOT_PX4:
+          return PX4Banner
+        default:
+          return undefined
+      }
     },
     isLinuxFlightController(): boolean {
       // this is setup this way so we can include other linux boards in the list in the future
@@ -220,19 +240,7 @@ export default Vue.extend({
         })
     },
     async restart_autopilot(): Promise<void> {
-      autopilot_data.reset()
-      autopilot.setRestarting(true)
-      await back_axios({
-        method: 'post',
-        url: `${autopilot.API_URL}/restart`,
-        timeout: 10000,
-      })
-        .catch((error) => {
-          notifier.pushBackError('AUTOPILOT_RESTART_FAIL', error)
-        })
-        .finally(() => {
-          autopilot.setRestarting(false)
-        })
+      await AutopilotManager.restart()
     },
     openBoardChangeDialog(): void {
       this.show_board_change_dialog = true
