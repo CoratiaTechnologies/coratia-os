@@ -2,7 +2,7 @@
 
 # Set desired version to be installed
 VERSION="${VERSION:-coratiaos}"
-GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-sakthivelj/coratia-os}
+GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-CoratiaTechnologies/coratia-os}
 REMOTE="${REMOTE:-https://raw.githubusercontent.com/${GITHUB_REPOSITORY}}"
 ROOT="$REMOTE/$VERSION"
 echo $VERSION
